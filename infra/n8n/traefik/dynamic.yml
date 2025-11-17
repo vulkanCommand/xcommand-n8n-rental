@@ -1,0 +1,63 @@
+http:
+  middlewares:
+    hsts:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+  routers:
+    landing-apex:
+      rule: Host(`xcommand.cloud`)
+      entryPoints: [websecure]
+      service: landing
+      middlewares: [hsts]
+      tls: { certResolver: le }
+
+    landing-www:
+      rule: Host(`www.xcommand.cloud`)
+      entryPoints: [websecure]
+      service: landing
+      middlewares: [hsts]
+      tls: { certResolver: le }
+
+    n8n:
+      rule: Host(`n8n.xcommand.cloud`)
+      entryPoints: [websecure]
+      service: n8n
+      middlewares: [hsts]
+      tls: { certResolver: le }
+
+    app-ui:
+      rule: Host(`app.xcommand.cloud`)
+      entryPoints: [websecure]
+      service: xcmd-web
+      middlewares: [hsts]
+      tls: { certResolver: le }
+
+    app-api:
+      rule: Host(`api.app.xcommand.cloud`)
+      entryPoints: [websecure]
+      service: xcmd-api
+      middlewares: [hsts]
+      tls: { certResolver: le }
+
+  services:
+    landing:
+      loadBalancer:
+        servers:
+          - url: http://landing:80
+    n8n:
+      loadBalancer:
+        servers:
+          - url: http://n8n:5678
+
+    xcmd-web:
+      loadBalancer:
+        servers:
+          - url: http://xcommand-n8n-rental-web-1:8000
+
+    xcmd-api:
+      loadBalancer:
+        servers:
+          - url: http://xcommand-n8n-rental-api-1:8001

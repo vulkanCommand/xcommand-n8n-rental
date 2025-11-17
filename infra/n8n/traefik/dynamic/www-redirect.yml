@@ -1,0 +1,14 @@
+http:
+  routers:
+    www-to-apex:
+      entryPoints: [web, websecure]
+      rule: Host(`www.xcommand.cloud`)
+      middlewares: [to-apex]
+      service: noop@internal
+
+  middlewares:
+    to-apex:
+      redirectRegex:
+        regex: "^https?://www\\.xcommand\\.cloud(.*)"
+        replacement: "https://xcommand.cloud$1"
+        permanent: true
