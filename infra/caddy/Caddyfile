@@ -1,0 +1,3 @@
+n8n.xcommand.cloud {
+    reverse_proxy localhost:5678
+}
