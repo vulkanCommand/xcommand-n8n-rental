@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>xCommand Cloud — Your workspace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg1: #060b16;
+      --bg2: #0c1428;
+      --glass: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --text: #e9f0ff;
+      --muted: #9cb3ff;
+      --accent1: #7cf0ff;
+      --accent2: #a07cff;
+      --success: #78f5b0;
+      --warning: #ffd27d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, var(--bg2), var(--bg1));
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    #stars {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header {
+      padding: 28px 50px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      padding: 26px 24px 26px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.45);
+    }
+
+    h1 {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill span.dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .pill.provisioning {
+      background: rgba(255,210,125,0.09);
+      border: 1px solid rgba(255,210,125,0.6);
+      color: var(--warning);
+    }
+    .pill.provisioning .dot {
+      background: var(--warning);
+      box-shadow: 0 0 10px rgba(255,210,125,0.9);
+    }
+
+    .pill.active {
+      background: rgba(120,245,176,0.09);
+      border: 1px solid rgba(120,245,176,0.7);
+      color: var(--success);
+    }
+    .pill.active .dot {
+      background: var(--success);
+      box-shadow: 0 0 10px rgba(120,245,176,0.9);
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .email-form {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .email-form label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .email-form input {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .primary-btn {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      color: #041018;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 0 20px rgba(124,240,255,0.28);
+      transition: filter .2s ease, transform .1s ease;
+    }
+
+    .primary-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .primary-btn[disabled] {
+      opacity: 0.6;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .workspace-box {
+      margin-top: 16px;
+      padding: 14px 14px 16px;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.24);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 14px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .workspace-box .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .workspace-link {
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      text-decoration: none;
+      background: rgba(120,245,176,0.1);
+      border: 1px solid rgba(120,245,176,0.7);
+      color: var(--success);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .error {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #ff8b9b;
+      min-height: 1.2em;
+    }
+
+    .small {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<header>
+  <div class="logo">xCommand Cloud</div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h1>Your n8n workspace is getting ready</h1>
+    <p class="sub">
+      Payment was successful. We&#8217;re provisioning an isolated n8n container for you.
+    </p>
+
+    <div class="status-row">
+      <div id="status-pill" class="pill provisioning">
+        <span class="dot"></span>
+        <span id="status-text">Provisioning workspace…</span>
+      </div>
+    </div>
+
+    <p class="hint" id="hint-text">
+      This usually takes under a minute. We&#8217;ll keep checking for your workspace and show a button when it&#8217;s ready.
+    </p>
+
+    <div class="email-form" id="email-form">
+      <label for="email-input">Email you used during checkout</label>
+      <input id="email-input" type="email" placeholder="you@example.com" />
+      <button id="start-btn" class="primary-btn">Find my workspace</button>
+    </div>
+
+    <div class="workspace-box" id="workspace-box" style="display:none;">
+      <div class="label">Workspace</div>
+      <div id="workspace-info"></div>
+      <a id="workspace-link" class="workspace-link" href="#" target="_blank" rel="noopener noreferrer">
+        Open my n8n workspace →
+      </a>
+    </div>
+
+    <div class="error" id="error-text"></div>
+
+    <p class="small">
+      Tip: keep this page open while we provision. If you don&#8217;t see anything after a few minutes,
+      double-check the email you used at checkout.
+    </p>
+  </div>
+</div>
+
+<script>
+  // ---------- CONFIG ----------
+  const API_BASE = "https://api.app.xcommand.cloud";
+  // ----------------------------
+
+  // Starfield (same vibe as pay.html)
+  (function () {
+    const c = document.getElementById("stars");
+    const ctx = c.getContext("2d");
+    let w, h, stars;
+
+    function resize() {
+      w = c.width = window.innerWidth;
+      h = c.height = window.innerHeight;
+      stars = Array.from({length: 160}, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.3 + 0.3,
+        s: Math.random() * 0.6 + 0.2
+      }));
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      for (const s of stars) {
+        s.y += s.s;
+        if (s.y > h) s.y = 0;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    tick();
+  })();
+
+  const emailInput   = document.getElementById("email-input");
+  const startBtn     = document.getElementById("start-btn");
+  const errorText    = document.getElementById("error-text");
+  const statusPill   = document.getElementById("status-pill");
+  const statusText   = document.getElementById("status-text");
+  const hintText     = document.getElementById("hint-text");
+  const workspaceBox = document.getElementById("workspace-box");
+  const workspaceInfo= document.getElementById("workspace-info");
+  const workspaceLink= document.getElementById("workspace-link");
+
+  let pollTimer = null;
+
+  function setStatus(state) {
+    statusPill.classList.remove("provisioning", "active");
+    if (state === "active") {
+      statusPill.classList.add("active");
+      statusText.textContent = "Workspace is live";
+      hintText.textContent = "You can open your n8n UI in a new tab. Keep this link handy.";
+    } else {
+      statusPill.classList.add("provisioning");
+      statusText.textContent = "Provisioning workspace…";
+      hintText.textContent = "This usually takes under a minute. We’re checking for your workspace.";
+    }
+  }
+
+  function setLoading(isLoading) {
+    startBtn.disabled = isLoading;
+    startBtn.textContent = isLoading ? "Looking up workspace…" : "Find my workspace";
+  }
+
+  async function fetchWorkspace(email) {
+    const url = `${API_BASE}/workspaces/by-email/${encodeURIComponent(email)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function poll(email) {
+    try {
+      const data = await fetchWorkspace(email);
+
+      // Expecting shape: { ok: true, workspace: {...} }
+      if (!data || !data.ok || !data.workspace) {
+        errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
+        return;
+      }
+
+      const ws = data.workspace;
+      errorText.textContent = "";
+
+      if (ws.status === "active") {
+        setStatus("active");
+        workspaceBox.style.display = "grid";
+        workspaceInfo.textContent = `${ws.fqdn || "Workspace ready"} — expires at ${ws.expires_at || "unknown"}`;
+        if (ws.fqdn) {
+          workspaceLink.href = ws.fqdn;
+        }
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      } else {
+        setStatus("provisioning");
+      }
+    } catch (err) {
+      console.error(err);
+      errorText.textContent = "Could not reach the API. Please try again in a moment.";
+    }
+  }
+
+  function startPolling(email) {
+    if (pollTimer) clearInterval(pollTimer);
+    poll(email);                           // immediate
+    pollTimer = setInterval(() => poll(email), 5000);  // every 5s
+  }
+
+  // Try to auto-fill email from localStorage (will work once pay.html is on same domain)
+  try {
+    const storedEmail = localStorage.getItem("x_email");
+    if (storedEmail) {
+      emailInput.value = storedEmail;
+      startPolling(storedEmail);
+    }
+  } catch (e) {
+    console.warn("no localStorage", e);
+  }
+
+  startBtn.addEventListener("click", () => {
+    const email = emailInput.value.trim();
+    if (!email) {
+      errorText.textContent = "Please enter the email you used at checkout.";
+      emailInput.focus();
+      return;
+    }
+    errorText.textContent = "";
+    setLoading(true);
+    startPolling(email);
+    setTimeout(() => setLoading(false), 1200);
+  });
+</script>
+</body>
+</html>

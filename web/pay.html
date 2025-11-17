@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xCommand Cloud — Pricing</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --bg1: #060b16;
+        --bg2: #0c1428;
+        --glass: rgba(255,255,255,0.06);
+        --border: rgba(255,255,255,0.12);
+        --text: #e9f0ff;
+        --muted: #9cb3ff;
+        --accent1: #7cf0ff;
+        --accent2: #a07cff;
+        --success: #78f5b0;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: Inter, sans-serif;
+    }
+
+    body {
+        background: radial-gradient(circle at top left, var(--bg2), var(--bg1));
+        color: var(--text);
+        overflow-x: hidden;
+        min-height: 100vh;
+    }
+
+    #stars {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    header {
+        padding: 28px 50px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .container {
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 50px 20px 110px;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 42px;
+        margin-bottom: 12px;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        color: var(--muted);
+        font-size: 18px;
+        margin-bottom: 50px;
+    }
+
+    /* Pricing Grid */
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 28px;
+    }
+
+    .card {
+        background: var(--glass);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border);
+        padding: 28px;
+        border-radius: 22px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.35);
+        text-align: left;
+        position: relative;
+        transition: transform .2s ease, box-shadow .25s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 0 35px rgba(124,240,255,0.25);
+    }
+
+    .price {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .period {
+        font-size: 15px;
+        color: var(--muted);
+        margin-bottom: 20px;
+    }
+
+    .features {
+        list-style: none;
+        margin-bottom: 26px;
+        display: grid;
+        gap: 10px;
+    }
+
+    .features li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 15px;
+        color: #d4e2ff;
+    }
+
+    .check {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid var(--success);
+        position: relative;
+    }
+
+    .check::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        width: 5px;
+        height: 9px;
+        border: solid var(--success);
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+/* Plan buttons: plain by default */
+.select-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight: 500;
+    position: relative;         /* IMPORTANT: lets gradient overlay sit on top */
+    overflow: hidden;           /* clip gradient shine */
+    transition: all .25s ease;
+}
+
+/* Create the gradient “shine” layer */
+.select-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    opacity: 0;                 /* invisible until hover/active */
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: -1;
+}
+
+/* Hover: activate gradient */
+.select-btn:hover::before {
+    opacity: 1;
+    transform: scale(1.05);     /* slight shine expansion */
+}
+
+.select-btn:hover {
+    color: #041018;
+    border-color: var(--accent1);
+    box-shadow: 0 0 22px rgba(124,240,255,0.35);
+    transform: translateY(-1px);
+}
+
+/* Active: stay gradient even when not hovering */
+.select-btn.active::before {
+    opacity: 1;
+}
+
+.select-btn.active {
+    color: #041018;
+    border-color: var(--accent1);
+    box-shadow: 0 0 26px rgba(124,240,255,0.45);
+    transform: translateY(-2px);
+}
+
+/* Selected plan: show gradient + small lift */
+.select-btn.active {
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    color: #041018;
+    font-weight: 600;
+    box-shadow: 0 0 22px rgba(124,240,255,0.35);
+    transform: translateY(-2px);
+}
+
+
+    .select-btn:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .select-btn.active {
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        color: #041018;
+        font-weight: 600;
+        box-shadow: 0 0 20px rgba(124,240,255,0.35);
+        transform: translateY(-1px);
+    }
+
+    /* Email Input Banner */
+    .email-box {
+        margin: 40px auto 20px;
+        max-width: 480px;
+        background: var(--glass);
+        padding: 20px 20px 22px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        display: grid;
+        gap: 10px;
+        text-align: left;
+    }
+
+    .email-box label {
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    .email-box input {
+        padding: 12px;
+        width: 100%;
+        background: rgba(0,0,0,0.25);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: white;
+        font-size: 15px;
+    }
+
+    .continue-btn {
+        margin-top: 10px;
+        padding: 12px;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        color: #041018;
+        box-shadow: 0 0 20px rgba(124,240,255,0.25);
+        transition: filter .2s ease, transform .1s ease;
+    }
+
+    .continue-btn:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+
+    .hint {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+</head>
+
+<body>
+
+<canvas id="stars"></canvas>
+
+<header>
+    <div class="logo">xCommand Cloud</div>
+</header>
+
+<div class="container">
+    <h1>Choose Your Workspace Plan</h1>
+    <p class="subtitle">No setup. No maintenance. Your isolated n8n workspace launches instantly.</p>
+
+    <div class="pricing-grid">
+
+        <!-- 24 hour plan -->
+        <div class="card" data-plan="1d">
+            <h2 class="price">$1</h2>
+            <p class="period">24 hours access</p>
+
+            <ul class="features">
+                <li><span class="check"></span> Dedicated n8n workspace</li>
+                <li><span class="check"></span> Full n8n UI</li>
+                <li><span class="check"></span> Zero setup required</li>
+                <li><span class="check"></span> Auto-expiry after 24 hours</li>
+                <li><span class="check"></span> Secure isolated container</li>
+            </ul>
+
+            <button class="select-btn">Select plan</button>
+        </div>
+
+        <!-- 5 day plan -->
+        <div class="card" data-plan="5d">
+            <h2 class="price">$3</h2>
+            <p class="period">5 days access</p>
+
+            <ul class="features">
+                <li><span class="check"></span> Dedicated n8n workspace</li>
+                <li><span class="check"></span> Full n8n UI</li>
+                <li><span class="check"></span> Zero setup required</li>
+                <li><span class="check"></span> Auto-expiry after 5 days</li>
+                <li><span class="check"></span> Perfect for multi-day builds</li>
+            </ul>
+
+            <button class="select-btn">Select plan</button>
+        </div>
+
+    </div>
+
+    <!-- Hidden until a plan is selected -->
+    <div class="email-box hidden" id="email-box">
+        <label for="email-input">Your email for this workspace</label>
+        <input id="email-input" type="email" placeholder="you@example.com" required>
+        <button class="continue-btn" id="continue-btn">Continue to checkout</button>
+        <p class="hint">We’ll use this email to provision and look up your workspace. Stripe will also ask for an email for the receipt.</p>
+    </div>
+</div>
+
+
+<script>
+/* ---------- CONFIG: adjust if needed ---------- */
+// Local dev example:
+// const API_BASE = "http://localhost:3001";
+// Production:
+const API_BASE = "https://api.app.xcommand.cloud";
+
+// This should match your FastAPI route that creates a checkout session
+const CHECKOUT_ENDPOINT = "/stripe/create-checkout-session";
+/* --------------------------------------------- */
+
+/* Starfield */
+(function () {
+    const c = document.getElementById('stars');
+    const ctx = c.getContext('2d');
+    let w, h, stars;
+
+    function resize() {
+        w = c.width = window.innerWidth;
+        h = c.height = window.innerHeight;
+        stars = Array.from({ length: 160 }, () => ({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.3 + 0.3,
+            s: Math.random() * 0.6 + 0.2
+        }));
+    }
+
+    function tick() {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        for (const s of stars) {
+            s.y += s.s;
+            if (s.y > h) s.y = 0;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        requestAnimationFrame(tick);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    tick();
+})();
+
+/* Plan selection + email + continue */
+const cards = document.querySelectorAll(".card");
+const emailBox = document.getElementById("email-box");
+const emailInput = document.getElementById("email-input");
+const continueBtn = document.getElementById("continue-btn");
+let selectedPlan = null;
+
+// Step 1: choose plan
+cards.forEach(card => {
+    const btn = card.querySelector(".select-btn");
+    btn.addEventListener("click", () => {
+        // highlight only this button
+        document.querySelectorAll(".select-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // remember selected plan
+        selectedPlan = card.dataset.plan;
+
+        // show email box and scroll to it
+        emailBox.classList.remove("hidden");
+        emailBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => emailInput.focus(), 400);
+    });
+});
+
+function setContinueLoading(isLoading) {
+    continueBtn.disabled = isLoading;
+    continueBtn.textContent = isLoading ? "Creating secure checkout…" : "Continue to checkout";
+}
+
+// Step 2: email + continue → call backend → Stripe
+continueBtn.addEventListener("click", async () => {
+    if (!selectedPlan) {
+        alert("Please select a plan first.");
+        return;
+    }
+
+    const email = emailInput.value.trim();
+    if (!email) {
+        alert("Please enter your email.");
+        emailInput.focus();
+        return;
+    }
+
+    // store for ready.html / lookup page
+    try {
+        localStorage.setItem("x_email", email);
+        localStorage.setItem("x_plan", selectedPlan);
+    } catch (e) {
+        console.warn("localStorage not available", e);
+    }
+
+    const successUrl = `${window.location.origin}/ready.html`;
+    const cancelUrl  = window.location.href;
+
+    setContinueLoading(true);
+
+    try {
+        const res = await fetch(API_BASE + CHECKOUT_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email,
+                plan: selectedPlan,
+                success_url: successUrl,
+                cancel_url: cancelUrl
+            })
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(txt || "Checkout API error");
+        }
+
+        const data = await res.json();
+
+        if (data.checkout_url) {
+            // simplest: backend returns the Stripe Checkout URL
+            window.location.href = data.checkout_url;
+        } else if (data.id) {
+            // alternative: backend returns session id (not used yet)
+            alert("Backend returned a session id but checkout_url is missing.");
+            setContinueLoading(false);
+        } else {
+            throw new Error("Unexpected response from checkout endpoint.");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Could not start checkout. Please try again.");
+        setContinueLoading(false);
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks: [internal]
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}          # e.g. app.xcommand.cloud (we'll set this in .env)
+      STRIPE_SECRET: ${STRIPE_SECRET}
+      PRICE_1D: ${PRICE_1D}
+      PRICE_5D: ${PRICE_5D}
+      SUCCESS_URL: ${SUCCESS_URL}
+      CANCEL_URL: ${CANCEL_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on: [postgres]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.xcmd-web.rule=Host(`${BASE_DOMAIN}`)
+      - traefik.http.routers.xcmd-web.entrypoints=websecure
+      - traefik.http.routers.xcmd-web.tls.certresolver=le
+      - traefik.http.services.xcmd-web.loadbalancer.server.port=8000
+    networks: [web, internal]
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    environment:
+      PUBLIC_WORKSPACE_HOST: 31.220.62.47
+      STRIPE_SECRET: ${STRIPE_SECRET}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      DOCKER_HOST: ${DOCKER_HOST}
+      N8N_ROOT_DOMAIN: ${N8N_ROOT_DOMAIN}  # e.g. xcommand.cloud (for u-xxxx.xcommand.cloud)
+      ENCRYPTION_KEY: "local-dev-encryption-key-change-me"
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      FROM_EMAIL: ${FROM_EMAIL}
+      BASE_DOMAIN: xcommand.cloud
+      WORKSPACE_BASE_DOMAIN: xcommand.cloud
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.xcmd-api.rule=Host(`api.${BASE_DOMAIN}`)
+      - traefik.http.routers.xcmd-api.entrypoints=websecure
+      - traefik.http.routers.xcmd-api.tls.certresolver=le
+      - traefik.http.services.xcmd-api.loadbalancer.server.port=8001
+    networks: [web, internal]
+    restart: unless-stopped
+
+  worker:
+    build: ./worker
+    command: python -u worker.py
+    environment:
+      PYTHONUNBUFFERED: "1"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      FROM_EMAIL: ${FROM_EMAIL}
+      DOCKER_HOST: ${DOCKER_HOST}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on: [postgres]
+    networks: [internal]
+    restart: unless-stopped
+
+  janitor:
+    image: python:3.11-slim
+    container_name: xcommand-n8n-janitor
+    working_dir: /janitor
+    command: >
+      sh -c "pip install --no-cache-dir python-dateutil docker &&
+             echo 'Dependencies installed. Starting janitor...' &&
+             python -u /janitor/janitor.py"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./janitor:/janitor:ro
+      - ./api/app:/app:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [internal]
+
+networks:
+  web:
+    external: true
+    name: n8n_web      # <-- attaches to your existing Traefik network
+  internal:
+
+volumes:
+  pg_data:

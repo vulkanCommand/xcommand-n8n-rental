@@ -1,0 +1,15 @@
+services:
+  traefik:
+    profiles: ["prod"]   # don’t start in local dev
+
+  web:
+    ports:
+      - "3000:8000"
+    labels: []           # disable traefik labels locally
+    environment:
+      BASE_DOMAIN: "localhost"
+
+  api:
+    ports:
+      - "3001:8001"
+    labels: []           # disable traefik labels locally

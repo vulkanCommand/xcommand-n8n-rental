@@ -1,0 +1,15 @@
+http:
+  routers:
+    api-router:
+      entryPoints:
+        - websecure
+      rule: Host(`api.app.xcommand.cloud`)
+      service: api-service
+      tls:
+        certResolver: le   # matches: --certificatesresolvers.le.acme...
+
+  services:
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://api:8001"
