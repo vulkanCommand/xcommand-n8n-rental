@@ -473,12 +473,43 @@
     errorText.textContent = "Could not reach the API. Please try again in a moment.";
   }
 }
+  } catch (err) {
+    console.error(err);
+    errorText.textContent = "Could not reach the API. Please try again in a moment.";
+  }
+}
 
-    errorText.textContent = "";
-    setLoading(true);
-    startPolling(email);
-    setTimeout(() => setLoading(false), 1200);
-  });
+// Start polling: run once immediately, then repeat every 15 seconds
+function startPolling(email) {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+  }
+  poll(email);
+  pollTimer = setInterval(() => poll(email), 15000);
+}
+
+// Button click: user-triggered lookup
+startBtn.addEventListener("click", () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    errorText.textContent = "Please enter the email address you used during checkout.";
+    return;
+  }
+
+  errorText.textContent = "";
+  setLoading(true);
+  startPolling(email);
+  setTimeout(() => setLoading(false), 1200);
+});
+
+// Optional: if email is present in query string, auto-populate and start
+const params = new URLSearchParams(window.location.search);
+const qsEmail = params.get("email");
+if (qsEmail) {
+  emailInput.value = qsEmail;
+  startPolling(qsEmail);
+}
 </script>
+
 </body>
 </html>
