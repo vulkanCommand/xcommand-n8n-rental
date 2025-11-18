@@ -180,15 +180,57 @@
     }
 
     .workspace-box {
-      margin-top: 16px;
-      padding: 14px 14px 16px;
-      border-radius: 16px;
-      background: rgba(0,0,0,0.24);
-      border: 1px solid rgba(255,255,255,0.12);
-      font-size: 14px;
+      margin-top: 24px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--glass);
       display: grid;
-      gap: 6px;
+      gap: 12px;
     }
+    
+    #workspace-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .workspace-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(9, 16, 35, 0.9);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 13px;
+    }
+    
+    .workspace-item-main {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .workspace-item-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    
+    .workspace-item-link {
+      font-size: 13px;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: transparent;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    
+    .workspace-item-link:hover {
+      border-color: rgba(255,255,255,0.4);
+    }
+
 
     .workspace-box .label {
       font-size: 12px;
@@ -258,12 +300,12 @@
     </div>
 
     <div class="workspace-box" id="workspace-box" style="display:none;">
-      <div class="label">Workspace</div>
-      <div id="workspace-info"></div>
-      <a id="workspace-link" class="workspace-link" href="#" target="_blank" rel="noopener noreferrer">
-        Open my n8n workspace →
-      </a>
+      <div class="label">Your workspaces</div>
+      <div id="workspace-info" class="small"></div>
+
+      <div id="workspace-list"></div>
     </div>
+
 
     <div class="error" id="error-text"></div>
 
@@ -320,9 +362,10 @@
   const statusPill   = document.getElementById("status-pill");
   const statusText   = document.getElementById("status-text");
   const hintText     = document.getElementById("hint-text");
-  const workspaceBox = document.getElementById("workspace-box");
-  const workspaceInfo= document.getElementById("workspace-info");
-  const workspaceLink= document.getElementById("workspace-link");
+  const workspaceBox  = document.getElementById("workspace-box");
+  const workspaceInfo = document.getElementById("workspace-info");
+  const workspaceList = document.getElementById("workspace-list");
+
 
   let pollTimer = null;
 
@@ -344,72 +387,93 @@
     startBtn.textContent = isLoading ? "Looking up workspace…" : "Find my workspace";
   }
 
-  async function fetchWorkspace(email) {
-    const url = `${API_BASE}/workspaces/by-email/${encodeURIComponent(email)}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}`);
-    }
-    return res.json();
+ async function fetchWorkspaces(email) {
+  const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}`);
   }
+  return res.json();
+}
+
 
   async function poll(email) {
-    try {
-      const data = await fetchWorkspace(email);
-
-      // Expecting shape: { ok: true, workspace: {...} }
-      if (!data || !data.ok || !data.workspace) {
-        errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
-        return;
-      }
-
-      const ws = data.workspace;
-      errorText.textContent = "";
-
-      if (ws.status === "active") {
-        setStatus("active");
-        workspaceBox.style.display = "grid";
-        workspaceInfo.textContent = `${ws.fqdn || "Workspace ready"} — expires at ${ws.expires_at || "unknown"}`;
-        if (ws.fqdn) {
-          workspaceLink.href = ws.fqdn;
-        }
-        if (pollTimer) {
-          clearInterval(pollTimer);
-          pollTimer = null;
-        }
-      } else {
-        setStatus("provisioning");
-      }
-    } catch (err) {
-      console.error(err);
-      errorText.textContent = "Could not reach the API. Please try again in a moment.";
-    }
-  }
-
-  function startPolling(email) {
-    if (pollTimer) clearInterval(pollTimer);
-    poll(email);                           // immediate
-    pollTimer = setInterval(() => poll(email), 5000);  // every 5s
-  }
-
-  // Try to auto-fill email from localStorage (will work once pay.html is on same domain)
   try {
-    const storedEmail = localStorage.getItem("x_email");
-    if (storedEmail) {
-      emailInput.value = storedEmail;
-      startPolling(storedEmail);
-    }
-  } catch (e) {
-    console.warn("no localStorage", e);
-  }
+    const data = await fetchWorkspaces(email);
 
-  startBtn.addEventListener("click", () => {
-    const email = emailInput.value.trim();
-    if (!email) {
-      errorText.textContent = "Please enter the email you used at checkout.";
-      emailInput.focus();
+    // Expecting: { ok: true, workspaces: [...] }
+    if (!data || !data.ok || !Array.isArray(data.workspaces) || data.workspaces.length === 0) {
+      errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
+      workspaceBox.style.display = "none";
       return;
     }
+
+    const workspaces = data.workspaces;
+    errorText.textContent = "";
+
+    // If at least one is active, show active status; otherwise provisioning
+    const hasActive = workspaces.some(ws => ws.status === "active");
+    if (hasActive) {
+      setStatus("active");
+    } else {
+      setStatus("provisioning");
+    }
+
+    workspaceBox.style.display = "grid";
+
+    // Text at the top of the box
+    workspaceInfo.textContent =
+      workspaces.length === 1
+        ? "We found 1 workspace for this email."
+        : `We found ${workspaces.length} workspaces for this email.`;
+
+    // Render the list
+    workspaceList.innerHTML = "";
+    for (const ws of workspaces) {
+      const row = document.createElement("div");
+      row.className = "workspace-item";
+
+      const main = document.createElement("div");
+      main.className = "workspace-item-main";
+
+      const title = document.createElement("div");
+      title.textContent = ws.fqdn || ws.subdomain || "Workspace";
+
+      const meta = document.createElement("div");
+      meta.className = "workspace-item-meta";
+      meta.textContent = [
+        ws.plan ? `Plan: ${ws.plan}` : null,
+        ws.status ? `Status: ${ws.status}` : null,
+        ws.expires_at ? `Expires: ${ws.expires_at}` : null,
+      ].filter(Boolean).join(" · ");
+
+      main.appendChild(title);
+      main.appendChild(meta);
+
+      const link = document.createElement("a");
+      link.className = "workspace-item-link";
+      link.href = ws.fqdn && ws.fqdn.startsWith("http") ? ws.fqdn : `http://${ws.fqdn}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = (ws.status === "active") ? "Open" : "Not ready";
+
+      // For now: keep non-active workspaces disabled (we’ll make this smarter in Issue 2)
+      if (ws.status !== "active" || !ws.fqdn) {
+        link.style.opacity = "0.6";
+        link.style.pointerEvents = "none";
+      }
+
+      row.appendChild(main);
+      row.appendChild(link);
+      workspaceList.appendChild(row);
+    }
+
+  } catch (err) {
+    console.error(err);
+    errorText.textContent = "Could not reach the API. Please try again in a moment.";
+  }
+}
+
     errorText.textContent = "";
     setLoading(true);
     startPolling(email);
