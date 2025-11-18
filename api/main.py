@@ -45,6 +45,36 @@ def get_workspace_by_email(email: EmailStr):
     workspace = rows[0]
     return JSONResponse(jsonable_encoder({"ok": True, "workspace": workspace}))
 
+@app.get("/workspaces/all-by-email/{email}")
+def get_workspaces_by_email(email: EmailStr):
+    """
+    Return all non-deleted workspaces for this email, newest first.
+    """
+    rows = fetch_all(
+        """
+        select
+          id,
+          email,
+          plan,
+          subdomain,
+          fqdn,
+          container_name,
+          volume_name,
+          status,
+          expires_at,
+          created_at
+        from workspaces
+        where email = %s
+          and status <> 'deleted'
+        order by created_at desc
+        """,
+        (email,),
+    )
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No active workspaces for this email")
+
+    return JSONResponse(jsonable_encoder({"ok": True, "workspaces": rows}))
 
 
 def provision_core(email: str, plan: str):
@@ -92,13 +122,17 @@ def provision_core(email: str, plan: str):
     )
 
     # create workspace row
+    # create workspace row
+    # create workspace row
     execute(
         """
-        insert into workspaces (email, subdomain, fqdn, container_name, volume_name, status, expires_at)
-        values (%s, %s, %s, %s, %s, 'provisioning', %s)
+        insert into workspaces (email, plan, subdomain, fqdn, container_name, volume_name, status, expires_at)
+        values (%s, %s, %s, %s, %s, %s, 'provisioning', %s)
         """,
-        (email, sub, fqdn, container_name, volume_name, expires_dt),
+        (email, plan, sub, fqdn, container_name, volume_name, expires_dt),
     )
+
+
 
     # boot local n8n with explicit expires_at for janitor label
     host_port = start_n8n_local(
