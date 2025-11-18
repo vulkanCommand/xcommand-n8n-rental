@@ -321,7 +321,7 @@
   const API_BASE = "https://api.app.xcommand.cloud";
   // ----------------------------
 
-  // Starfield (same vibe as pay.html)
+  // Starfield
   (function () {
     const c = document.getElementById("stars");
     const ctx = c.getContext("2d");
@@ -330,11 +330,11 @@
     function resize() {
       w = c.width = window.innerWidth;
       h = c.height = window.innerHeight;
-      stars = Array.from({length: 160}, () => ({
+      stars = Array.from({ length: 160 }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
         r: Math.random() * 1.3 + 0.3,
-        s: Math.random() * 0.6 + 0.2
+        s: Math.random() * 0.6 + 0.2,
       }));
     }
 
@@ -356,16 +356,16 @@
     tick();
   })();
 
-  const emailInput   = document.getElementById("email-input");
-  const startBtn     = document.getElementById("start-btn");
-  const errorText    = document.getElementById("error-text");
-  const statusPill   = document.getElementById("status-pill");
-  const statusText   = document.getElementById("status-text");
-  const hintText     = document.getElementById("hint-text");
+  // DOM elements
+  const emailInput    = document.getElementById("email-input");
+  const startBtn      = document.getElementById("start-btn");
+  const errorText     = document.getElementById("error-text");
+  const statusPill    = document.getElementById("status-pill");
+  const statusText    = document.getElementById("status-text");
+  const hintText      = document.getElementById("hint-text");
   const workspaceBox  = document.getElementById("workspace-box");
   const workspaceInfo = document.getElementById("workspace-info");
   const workspaceList = document.getElementById("workspace-list");
-
 
   let pollTimer = null;
 
@@ -374,142 +374,155 @@
     if (state === "active") {
       statusPill.classList.add("active");
       statusText.textContent = "Workspace is live";
-      hintText.textContent = "You can open your n8n UI in a new tab. Keep this link handy.";
+      hintText.textContent =
+        "You can open your n8n UI in a new tab. Keep this link handy.";
     } else {
       statusPill.classList.add("provisioning");
       statusText.textContent = "Provisioning workspace…";
-      hintText.textContent = "This usually takes under a minute. We’re checking for your workspace.";
+      hintText.textContent =
+        "This usually takes under a minute. We’re checking for your workspace.";
     }
   }
 
   function setLoading(isLoading) {
     startBtn.disabled = isLoading;
-    startBtn.textContent = isLoading ? "Looking up workspace…" : "Find my workspace";
+    startBtn.textContent = isLoading
+      ? "Looking up workspace…"
+      : "Find my workspace";
   }
 
- async function fetchWorkspaces(email) {
-  const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`API error ${res.status}`);
+  async function fetchWorkspaces(email) {
+    const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(
+      email
+    )}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}`);
+    }
+    return res.json();
   }
-  return res.json();
-}
-
 
   async function poll(email) {
-  try {
-    const data = await fetchWorkspaces(email);
+    try {
+      const data = await fetchWorkspaces(email);
 
-    // Expecting: { ok: true, workspaces: [...] }
-    if (!data || !data.ok || !Array.isArray(data.workspaces) || data.workspaces.length === 0) {
-      errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
-      workspaceBox.style.display = "none";
+      // Expecting: { ok: true, workspaces: [...] }
+      if (
+        !data ||
+        !data.ok ||
+        !Array.isArray(data.workspaces) ||
+        data.workspaces.length === 0
+      ) {
+        errorText.textContent =
+          "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
+        workspaceBox.style.display = "none";
+        return;
+      }
+
+      const workspaces = data.workspaces;
+      errorText.textContent = "";
+
+      // If at least one is active, show active status; otherwise provisioning
+      const hasActive = workspaces.some((ws) => ws.status === "active");
+      if (hasActive) {
+        setStatus("active");
+      } else {
+        setStatus("provisioning");
+      }
+
+      workspaceBox.style.display = "grid";
+
+      // Text at the top of the box
+      workspaceInfo.textContent =
+        workspaces.length === 1
+          ? "We found 1 workspace for this email."
+          : `We found ${workspaces.length} workspaces for this email.`;
+
+      // Render the list
+      workspaceList.innerHTML = "";
+      for (const ws of workspaces) {
+        const row = document.createElement("div");
+        row.className = "workspace-item";
+
+        const main = document.createElement("div");
+        main.className = "workspace-item-main";
+
+        const title = document.createElement("div");
+        title.textContent = ws.fqdn || ws.subdomain || "Workspace";
+
+        const meta = document.createElement("div");
+        meta.className = "workspace-item-meta";
+        meta.textContent = [
+          ws.plan ? `Plan: ${ws.plan}` : null,
+          ws.status ? `Status: ${ws.status}` : null,
+          ws.expires_at ? `Expires: ${ws.expires_at}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        main.appendChild(title);
+        main.appendChild(meta);
+
+        const link = document.createElement("a");
+        link.className = "workspace-item-link";
+        link.href =
+          ws.fqdn && ws.fqdn.startsWith("http")
+            ? ws.fqdn
+            : `http://${ws.fqdn}`;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent =
+          ws.status === "active" ? "Open" : "Not ready";
+
+        // Disable non-active workspaces for now
+        if (ws.status !== "active" || !ws.fqdn) {
+          link.style.opacity = "0.6";
+          link.style.pointerEvents = "none";
+        }
+
+        row.appendChild(main);
+        row.appendChild(link);
+        workspaceList.appendChild(row);
+      }
+    } catch (err) {
+      console.error(err);
+      errorText.textContent =
+        "Could not reach the API. Please try again in a moment.";
+    }
+  }
+
+  function startPolling(email) {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+    }
+    poll(email);
+    pollTimer = setInterval(() => poll(email), 15000);
+  }
+
+  // Button click: user-triggered lookup
+  startBtn.addEventListener("click", () => {
+    const email = emailInput.value.trim();
+    if (!email) {
+      errorText.textContent =
+        "Please enter the email address you used during checkout.";
       return;
     }
 
-    const workspaces = data.workspaces;
     errorText.textContent = "";
+    setLoading(true);
+    startPolling(email);
+    setTimeout(() => setLoading(false), 1200);
+  });
 
-    // If at least one is active, show active status; otherwise provisioning
-    const hasActive = workspaces.some(ws => ws.status === "active");
-    if (hasActive) {
-      setStatus("active");
-    } else {
-      setStatus("provisioning");
-    }
-
-    workspaceBox.style.display = "grid";
-
-    // Text at the top of the box
-    workspaceInfo.textContent =
-      workspaces.length === 1
-        ? "We found 1 workspace for this email."
-        : `We found ${workspaces.length} workspaces for this email.`;
-
-    // Render the list
-    workspaceList.innerHTML = "";
-    for (const ws of workspaces) {
-      const row = document.createElement("div");
-      row.className = "workspace-item";
-
-      const main = document.createElement("div");
-      main.className = "workspace-item-main";
-
-      const title = document.createElement("div");
-      title.textContent = ws.fqdn || ws.subdomain || "Workspace";
-
-      const meta = document.createElement("div");
-      meta.className = "workspace-item-meta";
-      meta.textContent = [
-        ws.plan ? `Plan: ${ws.plan}` : null,
-        ws.status ? `Status: ${ws.status}` : null,
-        ws.expires_at ? `Expires: ${ws.expires_at}` : null,
-      ].filter(Boolean).join(" · ");
-
-      main.appendChild(title);
-      main.appendChild(meta);
-
-      const link = document.createElement("a");
-      link.className = "workspace-item-link";
-      link.href = ws.fqdn && ws.fqdn.startsWith("http") ? ws.fqdn : `http://${ws.fqdn}`;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = (ws.status === "active") ? "Open" : "Not ready";
-
-      // For now: keep non-active workspaces disabled (we’ll make this smarter in Issue 2)
-      if (ws.status !== "active" || !ws.fqdn) {
-        link.style.opacity = "0.6";
-        link.style.pointerEvents = "none";
-      }
-
-      row.appendChild(main);
-      row.appendChild(link);
-      workspaceList.appendChild(row);
-    }
-
-  } catch (err) {
-    console.error(err);
-    errorText.textContent = "Could not reach the API. Please try again in a moment.";
+  // Optional: auto-start if ?email= is present
+  const params = new URLSearchParams(window.location.search);
+  const qsEmail = params.get("email");
+  if (qsEmail) {
+    emailInput.value = qsEmail;
+    startPolling(qsEmail);
   }
-}
-  } catch (err) {
-    console.error(err);
-    errorText.textContent = "Could not reach the API. Please try again in a moment.";
-  }
-}
-
-// Start polling: run once immediately, then repeat every 15 seconds
-function startPolling(email) {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-  }
-  poll(email);
-  pollTimer = setInterval(() => poll(email), 15000);
-}
-
-// Button click: user-triggered lookup
-startBtn.addEventListener("click", () => {
-  const email = emailInput.value.trim();
-  if (!email) {
-    errorText.textContent = "Please enter the email address you used during checkout.";
-    return;
-  }
-
-  errorText.textContent = "";
-  setLoading(true);
-  startPolling(email);
-  setTimeout(() => setLoading(false), 1200);
-});
-
-// Optional: if email is present in query string, auto-populate and start
-const params = new URLSearchParams(window.location.search);
-const qsEmail = params.get("email");
-if (qsEmail) {
-  emailInput.value = qsEmail;
-  startPolling(qsEmail);
-}
 </script>
+
 
 </body>
 </html>
