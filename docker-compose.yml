@@ -129,6 +129,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
+      grafana-data:
       - ./janitor:/janitor:ro
       - ./api/app:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
