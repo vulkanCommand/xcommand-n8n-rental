@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+
   grafana:
     image: grafana/grafana:11.0.0
     container_name: xcommand-grafana
@@ -13,19 +14,52 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
-      - web        # use the same network your Traefik is on
-      - internal   # optional: if you already have an internal net for api/db
-    labels:
-      - "traefik.enable=true"
+      - web
+      - internal
 
-      # Router
-      - "traefik.http.routers.grafana.rule=Host(`ops.xcommand.cloud`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certresolver=lets"  # <-- REPLACE with your existing resolver name
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: xcommand-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - internal
 
-      # Service
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: xcommand-node-exporter
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
+    networks:
+      - internal
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: xcommand-cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - internal
+
 
   postgres:
     image: postgres:15
@@ -143,3 +177,4 @@ networks:
 volumes:
   pg_data:
   grafana-data:
+  prometheus-data:

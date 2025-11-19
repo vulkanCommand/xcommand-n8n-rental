@@ -1,4 +1,5 @@
 import os
+import time
 import socket
 from datetime import datetime, timezone
 
@@ -95,7 +96,29 @@ def start_n8n_local(
         labels=labels,
     )
 
-    # Optionally we could wait for container to be healthy, but for now just return
+    # Give n8n some time to boot before we mark the workspace as "active"
+    # (the API updates status to 'active' only after this function returns)
+    # First wait a few seconds while the container transitions to running,
+    # then add a small extra buffer for the app itself to start.
+    boot_wait_seconds = 25
+
+    for _ in range(boot_wait_seconds):
+        try:
+            container.reload()
+            # If the container is not running yet, keep waiting
+            if container.status != "running":
+                time.sleep(1)
+                continue
+            # Container is running; we still want a short extra buffer below
+            break
+        except docker.errors.APIError:
+            # If Docker hiccups on reload, just wait and retry
+            time.sleep(1)
+
+    # Extra small buffer to let n8n finish its internal startup
+    time.sleep(5)
+
+    # After this point the caller will set status='active' and expose the URL
     return host_port
 
 

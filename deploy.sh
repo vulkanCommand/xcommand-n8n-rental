@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /srv/xcommand-n8n-from-github
+
+echo "[xcmd] Using project name: xcommand-n8n-rental"
+export COMPOSE_PROJECT_NAME=xcommand-n8n-rental
+
+echo "[xcmd] Pulling latest code from GitHub..."
+git fetch origin main
+git reset --hard origin/main
+
+echo "[xcmd] Bringing up containers (build if needed)..."
+docker compose up -d --build
+
+echo "[xcmd] Current containers:"
+docker compose ps
+
+echo "[xcmd] Deploy complete."
+
+echo "[deploy] Syncing landing HTML into legacy n8n paths..."
+cp /srv/xcommand-n8n-from-github/landing/index.html /srv/n8n/landing/index.html
+cp /srv/xcommand-n8n-from-github/landing/index.html /srv/n8n/site/index.html
+echo "[deploy] Landing sync complete."
+
+echo "[deploy] Syncing pay/ready HTML into legacy n8n landing..."
+cp /srv/xcommand-n8n-from-github/web/pay.html   /srv/n8n/landing/pay.html
+cp /srv/xcommand-n8n-from-github/web/ready.html /srv/n8n/landing/ready.html
+echo "[deploy] pay/ready sync complete."

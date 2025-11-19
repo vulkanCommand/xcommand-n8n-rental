@@ -1,15 +1,75 @@
 http:
   routers:
-    api-router:
+    landing-apex:
       entryPoints:
         - websecure
-      rule: Host(`api.app.xcommand.cloud`)
-      service: api-service
+      rule: "Host(`xcommand.cloud`)"
+      service: landing
       tls:
-        certResolver: le   # matches: --certificatesresolvers.le.acme...
+        certResolver: le
+
+    landing-www:
+      entryPoints:
+        - websecure
+      rule: "Host(`www.xcommand.cloud`)"
+      service: landing
+      tls:
+        certResolver: le
+
+    n8n:
+      entryPoints:
+        - websecure
+      rule: "Host(`n8n.xcommand.cloud`)"
+      service: n8n
+      tls:
+        certResolver: le
+
+    app-ui:
+      entryPoints:
+        - websecure
+      rule: "Host(`app.xcommand.cloud`)"
+      service: xcmd-web
+      tls:
+        certResolver: le
+
+    app-api:
+      entryPoints:
+        - websecure
+      rule: "Host(`api.app.xcommand.cloud`)"
+      service: xcmd-api
+      tls:
+        certResolver: le
+
+    grafana-router:
+      entryPoints:
+        - websecure
+      rule: "Host(`ops.xcommand.cloud`)"
+      service: grafana-service
+      tls:
+        certResolver: le
 
   services:
-    api-service:
+    landing:
       loadBalancer:
         servers:
-          - url: "http://api:8001"
+          - url: "http://landing:80"
+
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://n8n:5678"
+
+    xcmd-web:
+      loadBalancer:
+        servers:
+          - url: "http://xcommand-n8n-rental-web-1:8000"
+
+    xcmd-api:
+      loadBalancer:
+        servers:
+          - url: "http://xcommand-n8n-rental-api-1:8001"
+
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://xcommand-grafana:3000"
