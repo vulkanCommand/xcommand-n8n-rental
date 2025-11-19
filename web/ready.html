@@ -326,6 +326,7 @@
   const workspaceList = document.getElementById("workspace-list");
 
   let pollTimer = null;
+  let hadSuccessfulLoad = false;   // 👈 track if we ever loaded workspaces
 
   function setStatus(state) {
     statusPill.classList.remove("provisioning", "active");
@@ -371,16 +372,18 @@
         !Array.isArray(data.workspaces) ||
         data.workspaces.length === 0
       ) {
-        errorText.textContent =
-          "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
-        workspaceBox.style.display = "none";
+        if (!hadSuccessfulLoad) {
+          errorText.textContent =
+            "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
+          workspaceBox.style.display = "none";
+        }
         return;
       }
 
       const workspaces = data.workspaces;
+      hadSuccessfulLoad = true;          // 👈 mark success
       errorText.textContent = "";
 
-      // If at least one is active, show active status; otherwise provisioning
       const hasActive = workspaces.some((ws) => ws.status === "active");
       if (hasActive) {
         setStatus("active");
@@ -390,13 +393,11 @@
 
       workspaceBox.style.display = "grid";
 
-      // Text at the top of the box
       workspaceInfo.textContent =
         workspaces.length === 1
           ? "We found 1 workspace for this email."
           : `We found ${workspaces.length} workspaces for this email.`;
 
-      // Render the list
       workspaceList.innerHTML = "";
       for (const ws of workspaces) {
         const row = document.createElement("div");
@@ -430,9 +431,8 @@
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.textContent =
-          ws.status === "active" ? "Open" : "Not ready";
+          ws.status === "active" && ws.fqdn ? "Open" : "Not ready";
 
-        // Disable non-active workspaces for now
         if (ws.status !== "active" || !ws.fqdn) {
           link.style.opacity = "0.6";
           link.style.pointerEvents = "none";
@@ -444,8 +444,12 @@
       }
     } catch (err) {
       console.error(err);
-      errorText.textContent =
-        "Could not reach the API. Please try again in a moment.";
+      // 👇 only show scary red error if we *never* had a success yet
+      if (!hadSuccessfulLoad) {
+        errorText.textContent =
+          "Could not reach the API. Please try again in a moment.";
+        workspaceBox.style.display = "none";
+      }
     }
   }
 
@@ -457,7 +461,6 @@
     pollTimer = setInterval(() => poll(email), 15000);
   }
 
-  // Button click: user-triggered lookup
   startBtn.addEventListener("click", () => {
     const email = emailInput.value.trim();
     if (!email) {
@@ -472,7 +475,6 @@
     setTimeout(() => setLoading(false), 1200);
   });
 
-  // Optional: auto-start if ?email= is present
   const params = new URLSearchParams(window.location.search);
   const qsEmail = params.get("email");
   if (qsEmail) {
@@ -480,6 +482,7 @@
     startPolling(qsEmail);
   }
 </script>
+
 
 </body>
 </html>
