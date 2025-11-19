@@ -41,12 +41,14 @@ def start_n8n_local(
 
     # Derive subdomain from the container name "n8n_u-xxxxxx" -> "u-xxxxxx"
     subdomain = container_name.replace("n8n_", "")
+    router_host = f"{subdomain}.{base_domain}"
 
     # n8n environment
     env = {
-        "N8N_HOST": "localhost",
+        # tell n8n the real public host + protocol (so links/cookies are correct)
+        "N8N_HOST": router_host,
         "N8N_PORT": "5678",
-        "N8N_PROTOCOL": "http",
+        "N8N_PROTOCOL": "https",
         "N8N_ENCRYPTION_KEY": encryption_key,
         "N8N_DIAGNOSTICS_ENABLED": "false",
         "N8N_VERSION_NOTIFICATIONS_ENABLED": "false",
@@ -64,11 +66,16 @@ def start_n8n_local(
         "xcommand.workspace": "true",
         "xcommand.subdomain": subdomain,
         "xcommand.expires_at": expires_at,
+
         # Traefik routing: https://<subdomain>.<base_domain> -> this container:5678
         "traefik.enable": "true",
-        f"traefik.http.routers.{subdomain}.rule": f"Host(`{subdomain}.{base_domain}`)",
-        f"traefik.http.services.{subdomain}.loadbalancer.server.port": "5678",
         "traefik.docker.network": "n8n_web",
+        f"traefik.http.routers.{subdomain}.rule": f"Host(`{router_host}`)",
+        # 🔑 these two make Traefik serve real HTTPS certs
+        f"traefik.http.routers.{subdomain}.entrypoints": "websecure",
+        f"traefik.http.routers.{subdomain}.tls.certresolver": "le",
+        # service points to the container's internal port
+        f"traefik.http.services.{subdomain}.loadbalancer.server.port": "5678",
     }
 
     # Create volume if it doesn't exist yet
@@ -89,7 +96,7 @@ def start_n8n_local(
                 "mode": "rw",
             }
         },
-        # Keep host port mapping so http://IP:PORT still works
+        # Keep host port mapping so http://IP:PORT still works for debugging
         ports={"5678/tcp": host_port},
         # Put the container on the same network Traefik is using
         network="n8n_web",
@@ -97,28 +104,19 @@ def start_n8n_local(
     )
 
     # Give n8n some time to boot before we mark the workspace as "active"
-    # (the API updates status to 'active' only after this function returns)
-    # First wait a few seconds while the container transitions to running,
-    # then add a small extra buffer for the app itself to start.
     boot_wait_seconds = 25
 
     for _ in range(boot_wait_seconds):
         try:
             container.reload()
-            # If the container is not running yet, keep waiting
             if container.status != "running":
                 time.sleep(1)
                 continue
-            # Container is running; we still want a short extra buffer below
             break
         except docker.errors.APIError:
-            # If Docker hiccups on reload, just wait and retry
             time.sleep(1)
 
-    # Extra small buffer to let n8n finish its internal startup
     time.sleep(5)
-
-    # After this point the caller will set status='active' and expose the URL
     return host_port
 
 
