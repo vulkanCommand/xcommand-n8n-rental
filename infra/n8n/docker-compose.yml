@@ -4,7 +4,7 @@ services:
     container_name: traefik
     restart: unless-stopped
     command:
-      - --providers.docker=false
+      - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
