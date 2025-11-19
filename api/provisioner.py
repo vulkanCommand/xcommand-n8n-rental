@@ -45,7 +45,6 @@ def start_n8n_local(
 
     # n8n environment
     env = {
-        # tell n8n the real public host + protocol (so links/cookies are correct)
         "N8N_HOST": router_host,
         "N8N_PORT": "5678",
         "N8N_PROTOCOL": "https",
@@ -53,36 +52,30 @@ def start_n8n_local(
         "N8N_DIAGNOSTICS_ENABLED": "false",
         "N8N_VERSION_NOTIFICATIONS_ENABLED": "false",
         "N8N_SECURE_COOKIE": "false",
-        # Skip the user management wizard; we use basic auth instead
         "N8N_USER_MANAGEMENT_DISABLED": "true",
         "N8N_BASIC_AUTH_ACTIVE": "true",
         "N8N_BASIC_AUTH_USER": "admin",
         "N8N_BASIC_AUTH_PASSWORD": encryption_key[:16],
     }
 
-
+    # Labels for janitor + Traefik
     labels = {
         # internal janitor metadata
         "xcommand.workspace": "true",
         "xcommand.subdomain": subdomain,
         "xcommand.expires_at": expires_at,
-    
-        # Traefik routing
+
+        # Traefik routing: https://<subdomain>.<base_domain> -> this container:5678
         "traefik.enable": "true",
         "traefik.docker.network": "n8n_web",
-    
-        # Router rules
+
         f"traefik.http.routers.{subdomain}.rule": f"Host(`{router_host}`)",
         f"traefik.http.routers.{subdomain}.entrypoints": "websecure",
-    
-        # 🔥 These were missing — REQUIRED for TLS
         f"traefik.http.routers.{subdomain}.tls": "true",
         f"traefik.http.routers.{subdomain}.tls.certresolver": "le",
-    
-        # Service points to the internal container port
+
         f"traefik.http.services.{subdomain}.loadbalancer.server.port": "5678",
     }
-
 
     # Create volume if it doesn't exist yet
     try:
@@ -102,16 +95,12 @@ def start_n8n_local(
                 "mode": "rw",
             }
         },
-        # Keep host port mapping so http://IP:PORT still works for debugging
         ports={"5678/tcp": host_port},
-        # Put the container on the same network Traefik is using
         network="n8n_web",
         labels=labels,
     )
 
-    # Give n8n some time to boot before we mark the workspace as "active"
     boot_wait_seconds = 25
-
     for _ in range(boot_wait_seconds):
         try:
             container.reload()
@@ -124,6 +113,7 @@ def start_n8n_local(
 
     time.sleep(5)
     return host_port
+
 
 
 def stop_container(container_name: str) -> bool:
