@@ -60,23 +60,29 @@ def start_n8n_local(
         "N8N_BASIC_AUTH_PASSWORD": encryption_key[:16],
     }
 
-    # Labels for janitor + Traefik
+
     labels = {
         # internal janitor metadata
         "xcommand.workspace": "true",
         "xcommand.subdomain": subdomain,
         "xcommand.expires_at": expires_at,
-
-        # Traefik routing: https://<subdomain>.<base_domain> -> this container:5678
+    
+        # Traefik routing
         "traefik.enable": "true",
         "traefik.docker.network": "n8n_web",
+    
+        # Router rules
         f"traefik.http.routers.{subdomain}.rule": f"Host(`{router_host}`)",
-        # 🔑 these two make Traefik serve real HTTPS certs
         f"traefik.http.routers.{subdomain}.entrypoints": "websecure",
+    
+        # 🔥 These were missing — REQUIRED for TLS
+        f"traefik.http.routers.{subdomain}.tls": "true",
         f"traefik.http.routers.{subdomain}.tls.certresolver": "le",
-        # service points to the container's internal port
+    
+        # Service points to the internal container port
         f"traefik.http.services.{subdomain}.loadbalancer.server.port": "5678",
     }
+
 
     # Create volume if it doesn't exist yet
     try:
