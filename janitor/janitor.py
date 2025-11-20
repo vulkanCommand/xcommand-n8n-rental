@@ -1,5 +1,6 @@
 import os, time, docker
 from datetime import datetime, timezone
+import psycopg2  # NEW
 
 client = docker.from_env()
 
@@ -23,6 +24,36 @@ def sub_from_container(name: str) -> str:
 def volume_name_for(sub: str) -> str:
     return f"n8n_{sub}_data"
 
+# ---------- NEW: DB helpers ----------
+
+def get_db_conn():
+    """
+    Create a Postgres connection using the same env vars as your API.
+    Adjust defaults if your DB name/user differ.
+    """
+    return psycopg2.connect(
+        host=os.getenv("POSTGRES_HOST", "postgres"),
+        dbname=os.getenv("POSTGRES_DB", "xcmd"),
+        user=os.getenv("POSTGRES_USER", "xcmd"),
+        password=os.getenv("POSTGRES_PASSWORD", ""),
+        port=int(os.getenv("POSTGRES_PORT", "5432")),
+    )
+
+def delete_workspace_row(sub: str):
+    """
+    Hard-delete the workspace row for this subdomain.
+    'sub' here is your subdomain like 'u-322e55'.
+    """
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM workspaces WHERE subdomain = %s", (sub,))
+        print(f"[janitor] deleted DB row for subdomain {sub}")
+    except Exception as e:
+        print(f"[janitor] failed to delete DB row for {sub}: {e}")
+
+# ------------------------------------
+
+
 def stop_and_wipe(container):
     name = container.name
     labels = container.labels or {}
@@ -41,6 +72,10 @@ def stop_and_wipe(container):
         print(f"[janitor] wiped volume {volume}")
     except Exception as e:
         print(f"[janitor] wipe failed {volume}: {e}")
+
+    # NEW: delete workspace row in Postgres
+    delete_workspace_row(sub)
+
 
 def sweep_once(now_utc: datetime):
     total = 0
