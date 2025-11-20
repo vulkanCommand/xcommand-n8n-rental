@@ -259,7 +259,6 @@
       line-height:1.05;
       margin:0 0 14px;
       font-weight:800;
-      transition: color .38s cubic-bezier(.2,.5,.55,1), font-variation-settings .18s;
     }
     .hero-title-main,
     .hero-title-sub{
@@ -623,6 +622,7 @@
     .roadmap{
       display:grid;
       gap:16px;
+      margin-top:4px; /* pushes whole roadmap block down a bit */
     }
     @media (min-width:780px){
       .roadmap{
@@ -637,7 +637,7 @@
       overflow-x:auto;
       padding-bottom:4px;
       max-width:100%;
-      margin-top:8px; /* extra breathing room under the header */
+      margin-top:16px; /* clear gap under header on all screens */
     }
     .roadmap-tabs::-webkit-scrollbar{
       height:4px;
@@ -767,8 +767,11 @@
       .roadmap-panel{
         padding:12px 12px;
       }
+      .roadmap{
+        margin-top:8px; /* extra on mobile */
+      }
       .roadmap-tabs{
-        margin-top:12px; /* a bit more on small screens to avoid any overlap feeling */
+        margin-top:24px; /* big buffer between subtitle and pills on iPhone */
       }
     }
 
@@ -784,7 +787,7 @@
   </style>
 </head>
 <body>
-  <a href="#main-content" class="skip-to-content skip-link">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <canvas id="stars" aria-hidden="true"></canvas>
   <div class="page">
     <div class="page-inner">
