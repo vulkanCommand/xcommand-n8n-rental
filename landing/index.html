@@ -63,8 +63,8 @@
       background:rgba(5,10,30,.75);
       border:1px solid rgba(255,255,255,.18);
       backdrop-filter:blur(18px);
-      position:sticky;
-      top:12px;
+      position:relative;   /* was sticky */
+      top:auto;            /* was 12px */
       z-index:10;
     }
     @media (max-width:768px){
@@ -78,7 +78,6 @@
     @media (max-width:480px){
       .topbar{
         margin-bottom:16px;
-        top:8px;
       }
     }
 
@@ -724,7 +723,7 @@
 
       <!-- SECTIONS -->
       <main class="sections">
-
+        <!-- (sections unchanged; same as your last version) -->
         <!-- ABOUT / MISSION -->
         <section id="about" class="section reveal">
           <div class="section-inner">
