@@ -139,6 +139,11 @@
     .brand-title h1{
       margin:0;
       font-size:clamp(20px,2.4vw,24px);
+      font-weight:700;
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
     }
     .brand-title .tag{
       color:var(--muted);
@@ -251,10 +256,25 @@
       text-transform:uppercase;
     }
     .hero-title{
-      font-size:clamp(28px,4.5vw,52px);
-      line-height:1.1;
-      margin:0 0 12px;
+      font-size:clamp(32px,5vw,58px);
+      line-height:1.05;
+      margin:0 0 14px;
+      font-weight:800;
       transition: color .38s cubic-bezier(.2,.5,.55,1), font-variation-settings .18s;
+    }
+    .hero-title-main,
+    .hero-title-sub{
+      display:block;
+    }
+    .hero-title-main{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(124,240,255,.22);
+    }
+    .hero-title-sub{
+      color:#f4f7ff;
     }
     .hero-title span.names{
       display:inline-block;
@@ -263,7 +283,7 @@
       background-clip:text;
       color:transparent;
       text-shadow:0 0 18px rgba(124,240,255,.22);
-      font-weight: 700;
+      font-weight: 800;
       animation: gradient-move 2.7s linear infinite alternate;
     }
     @keyframes gradient-move {
@@ -421,15 +441,21 @@
       flex-wrap:wrap;
     }
     .section-title{
-      font-size:.95rem;
+      font-size:1rem;
       text-transform:uppercase;
-      letter-spacing:.18em;
-      color:var(--muted);
+      letter-spacing:.24em;
+      font-weight:700;
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
     }
     .section-kicker{
       font-size:.88rem;
       color:#a9c0ff;
       opacity:.95;
+      font-weight:500;
+      margin-top:4px;
     }
     .section-body{
       display:grid;
@@ -744,8 +770,10 @@
             <div>
               <div class="hero-subline">Zero-setup n8n workspaces</div>
               <h2 class="hero-title">
-                Build serious automation with
-                <span class="names">n8n</span>, no infrastructure drama.
+                <span class="hero-title-main">Build serious automation</span>
+                <span class="hero-title-sub">
+                  with <span class="names">n8n</span>, no infrastructure drama.
+                </span>
               </h2>
               <p class="hero-desc">
                 Spin up an isolated n8n workspace in seconds. No installs, no servers,
