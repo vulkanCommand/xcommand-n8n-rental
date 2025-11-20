@@ -3,16 +3,21 @@ from fastapi.responses import HTMLResponse, FileResponse
 import json
 import urllib.request
 import urllib.parse
+import os  # NEW
 
 app = FastAPI()
 
 API_BASE = "http://api:8001"
+
+# NEW: use the same base domain everywhere
+WORKSPACE_BASE_DOMAIN = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
 
 
 @app.get("/", response_class=HTMLResponse)
 def landing():
     # Serve your futuristic landing page from index.html
     return FileResponse("index.html")
+
 
 @app.get("/pay.html", response_class=HTMLResponse)
 def pay_page():
@@ -68,10 +73,18 @@ def workspace(email: str):
         )
 
     ws = data["workspace"]
-    ws_url = ws.get("fqdn", "#")
     status = ws.get("status", "unknown")
     expires = ws.get("expires_at", "unknown")
     subdomain = ws.get("subdomain", "")
+
+    # 🔑 KEY CHANGE:
+    # Always build a secure HTTPS URL from subdomain + base domain.
+    # Ignore any IP:port fqdn in the DB.
+    if subdomain:
+        ws_url = f"https://{subdomain}.{WORKSPACE_BASE_DOMAIN}"
+    else:
+        # fallback to whatever API sent, just in case
+        ws_url = ws.get("fqdn", "#")
 
     return f"""
     <html>
@@ -100,7 +113,7 @@ def workspace(email: str):
 
         <h3 style="margin-top: 32px;">What to expect</h3>
         <ul>
-          <li><strong>First time:</strong> n8n may show a &ldquo;Set up owner account&rdquo; screen. Create your account once.</li>
+          <li><strong>First time:</strong> n8n may show a “Set up owner account” screen. Create your account once.</li>
           <li><strong>After that:</strong> opening this page and clicking <em>Launch n8n workspace</em> should jump straight into your workflows.</li>
           <li><strong>When it expires:</strong> the workspace container is stopped and all data is wiped automatically.</li>
         </ul>
