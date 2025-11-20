@@ -1,1 +1,2 @@
 docker
+psycopg2-binary
