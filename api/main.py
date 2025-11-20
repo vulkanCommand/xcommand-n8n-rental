@@ -135,6 +135,7 @@ def provision_core(email: str, plan: str):
 
 
     # boot local n8n with explicit expires_at for janitor label
+    # boot local n8n with explicit expires_at for janitor label
     host_port = start_n8n_local(
         container_name=container_name,
         volume_name=volume_name,
@@ -142,15 +143,17 @@ def provision_core(email: str, plan: str):
         expires_at=expires_iso,
     )
 
-    public_host = os.getenv("PUBLIC_WORKSPACE_HOST", "xcommand.cloud")
-    url = f"http://{public_host}:{host_port}"
-
+    # Always use the HTTPS workspace subdomain as the public URL.
+    # Example: https://u-3d83d4.xcommand.cloud
+    workspace_root = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
+    url = f"https://{sub}.{workspace_root}"
 
     # mark active and store url
     execute(
         "update workspaces set status='active', fqdn=%s where subdomain=%s",
         (url, sub),
     )
+
 
     # return the workspace row
     rows = fetch_all(
