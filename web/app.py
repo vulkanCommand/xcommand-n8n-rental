@@ -77,8 +77,6 @@ async def support_chat_proxy(request: Request):
     return JSONResponse(data, status_code=status)
 
 
-
-
 @app.get("/workspace", response_class=HTMLResponse)
 def workspace(email: str):
     # call API: /workspaces/by-email/{email}
