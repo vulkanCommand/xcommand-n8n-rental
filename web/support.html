@@ -538,6 +538,7 @@
     const sendBtn    = document.getElementById("sendBtn");
 
     let history = [];
+    let typingInterval = null;
 
     function appendMessage(role, text){
       if (chatEmpty) chatEmpty.style.display = "none";
@@ -554,6 +555,42 @@
       chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
+    function showTypingIndicator(){
+      if (chatEmpty) chatEmpty.style.display = "none";
+
+      const existing = document.getElementById("typingIndicator");
+      if (existing) return; // already visible
+
+      const wrap = document.createElement("div");
+      wrap.className = "chat-msg assistant";
+      wrap.id = "typingIndicator";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = "•";
+
+      wrap.appendChild(bubble);
+      chatWindow.appendChild(wrap);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      let dots = 1;
+      typingInterval = setInterval(() => {
+        dots = (dots % 3) + 1;
+        bubble.textContent = "•".repeat(dots);
+      }, 350);
+    }
+
+    function hideTypingIndicator(){
+      if (typingInterval) {
+        clearInterval(typingInterval);
+        typingInterval = null;
+      }
+      const el = document.getElementById("typingIndicator");
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }
+
     async function sendMsg(){
       const text = (msgBox.value || "").trim();
       if (!text) return;
@@ -563,7 +600,7 @@
 
       history.push({ role: "user", content: text });
       appendMessage("user", text);
-      appendMessage("assistant", "Thinking...");
+      showTypingIndicator();
 
       sendBtn.disabled = true;
 
@@ -576,8 +613,7 @@
 
         const data = await resp.json();
 
-        // remove "Thinking..."
-        chatWindow.removeChild(chatWindow.lastChild);
+        hideTypingIndicator();
 
         if (data.reply){
           history.push({ role: "assistant", content: data.reply });
@@ -586,8 +622,7 @@
           appendMessage("assistant", "Something went wrong while contacting support.");
         }
       } catch (err){
-        // remove "Thinking..."
-        chatWindow.removeChild(chatWindow.lastChild);
+        hideTypingIndicator();
         appendMessage("assistant", "Network error while calling /support/chat.");
       } finally{
         sendBtn.disabled = false;
@@ -615,6 +650,7 @@
 
     document.addEventListener("DOMContentLoaded", initChat);
   </script>
+
 
 </body>
 </html>
