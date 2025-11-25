@@ -1,120 +1,608 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>xCommand Cloud — Support</title>
+
   <style>
-    body {
-      background: #0b0f1a;
-      color: #e9f0ff;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 20px;
+    :root{
+      --bg-1:#0b0f1a;
+      --bg-2:#0e1630;
+      --fg:#e6eefc;
+      --muted:#9fb3ff;
+      --accent:#7cf0ff;
+      --accent-2:#a07cff;
+      --glass:rgba(15,23,42,0.85);
     }
-    h1 {
-      margin-bottom: 10px;
+
+    *{box-sizing:border-box;}
+
+    html,body{
+      height:100%;
+      margin:0;
+      padding:0;
     }
-    #chat {
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 10px;
-      height: 400px;
-      overflow-y: auto;
-      margin-bottom: 12px;
+
+    body{
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      color:var(--fg);
+      background:
+        radial-gradient(1200px 800px at 10% 10%, var(--bg-2) 0%, var(--bg-1) 45%) fixed,
+        radial-gradient(900px 600px at 90% 90%, #0a1230 0%, transparent 50%) fixed,
+        linear-gradient(180deg, #070a14 0%, #0b0f1a 100%) fixed;
+      overflow-x:hidden;
     }
-    .msg {
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      max-width: 80%;
+
+    .stars{
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      opacity:.4;
     }
-    .user {
-      background: #7cf0ff;
-      color: #050816;
-      margin-left: auto;
+
+    .page{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
     }
-    .bot {
-      background: rgba(255,255,255,0.08);
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:10;
+      padding:14px 20px;
+      border-bottom:1px solid rgba(148,163,255,0.35);
+      background:linear-gradient(90deg,rgba(3,7,18,0.96),rgba(11,15,32,0.9));
+      backdrop-filter:blur(14px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
     }
-    #inputRow {
-      display: flex;
-      gap: 10px;
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:10px;
     }
-    input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(0,0,0,0.2);
-      color: #e9f0ff;
+
+    .logo-mark{
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      background:conic-gradient(from 215deg,var(--accent),var(--accent-2),#2af5ff,var(--accent));
+      box-shadow:0 0 18px rgba(124,240,255,0.45);
     }
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #7cf0ff;
-      color: #050816;
-      cursor: pointer;
-      font-weight: 600;
+
+    .logo-text{
+      font-weight:600;
+      letter-spacing:.03em;
+      font-size:1rem;
+    }
+
+    .tagline{
+      font-size:.8rem;
+      color:var(--muted);
+      opacity:.9;
+    }
+
+    .nav-links{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      font-size:.85rem;
+    }
+
+    .nav-links a{
+      text-decoration:none;
+      color:var(--muted);
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid transparent;
+      background:transparent;
+    }
+
+    .nav-links a:hover{
+      border-color:rgba(124,240,255,0.65);
+    }
+
+    .nav-links a.active{
+      border-color:rgba(124,240,255,0.9);
+      background:rgba(15,23,42,0.92);
+      color:var(--fg);
+    }
+
+    main{
+      flex:1;
+      padding:20px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .shell{
+      width:100%;
+      max-width:1180px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .title-row{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .title-main{
+      max-width:560px;
+    }
+
+    .title-main h1{
+      margin:0 0 6px 0;
+      font-size:clamp(1.9rem,2.5vw,2.4rem);
+      background:linear-gradient(120deg,var(--accent),var(--accent-2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .title-main p{
+      margin:0;
+      color:var(--muted);
+      font-size:.95rem;
+    }
+
+    .status-pill{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:.8rem;
+      background:rgba(16,185,129,0.12);
+      border:1px solid rgba(52,211,153,0.6);
+      color:#bbf7d0;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+      height:max-content;
+    }
+
+    .status-dot{
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:#22c55e;
+      box-shadow:0 0 10px rgba(34,197,94,0.9);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.05fr) minmax(0,1.2fr);
+      gap:18px;
+      align-items:stretch;
+    }
+
+    @media (max-width:880px){
+      .grid{
+        grid-template-columns:minmax(0,1fr);
+      }
+    }
+
+    .panel{
+      position:relative;
+      background:var(--glass);
+      border-radius:18px;
+      border:1px solid rgba(148,163,255,0.45);
+      padding:16px 16px 18px;
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,0.95),
+        0 20px 55px rgba(15,23,42,0.9);
+      overflow:hidden;
+      backdrop-filter:blur(18px);
+    }
+
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:-120px;
+      background:
+        radial-gradient(circle at 0% 0%,rgba(124,240,255,0.10),transparent 55%),
+        radial-gradient(circle at 100% 10%,rgba(160,124,255,0.14),transparent 60%);
+      opacity:.85;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .panel h2{
+      margin:0 0 8px 0;
+      font-size:1.1rem;
+    }
+
+    .panel p{
+      margin:0 0 10px 0;
+      font-size:.9rem;
+      color:var(--muted);
+    }
+
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .pill{
+      font-size:.76rem;
+      padding:4px 9px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,255,0.55);
+      color:#c7d2fe;
+      background:rgba(15,23,42,0.95);
+      white-space:nowrap;
+    }
+
+    .faq-list{
+      list-style:none;
+      margin:6px 0 0 0;
+      padding:0;
+      font-size:.86rem;
+    }
+
+    .faq-list li{
+      padding:7px 0;
+      border-bottom:1px dashed rgba(148,163,255,0.35);
+    }
+
+    .faq-list li:last-child{
+      border-bottom:none;
+    }
+
+    .faq-q{
+      font-weight:500;
+      color:var(--fg);
+      margin-bottom:2px;
+    }
+
+    .faq-a{
+      color:var(--muted);
+      font-size:.84rem;
+    }
+
+    /* Chat side */
+    .chat-wrap{
+      display:flex;
+      flex-direction:column;
+      height:100%;
+      min-height:260px;
+    }
+
+    .chat-window{
+      flex:1;
+      min-height:200px;
+      max-height:420px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,255,0.6);
+      background:rgba(6,11,30,0.98);
+      padding:10px;
+      overflow-y:auto;
+      font-size:.9rem;
+    }
+
+    .chat-empty{
+      color:var(--muted);
+      font-size:.85rem;
+      text-align:center;
+      margin-top:40px;
+    }
+
+    .chat-msg{
+      margin:6px 0;
+      display:flex;
+    }
+
+    .chat-msg.user{
+      justify-content:flex-end;
+    }
+
+    .chat-msg.assistant{
+      justify-content:flex-start;
+    }
+
+    .bubble{
+      padding:7px 10px;
+      border-radius:12px;
+      max-width:78%;
+      line-height:1.4;
+      word-wrap:break-word;
+      white-space:pre-wrap;
+    }
+
+    .chat-msg.user .bubble{
+      background:linear-gradient(120deg,var(--accent),var(--accent-2));
+      color:#020617;
+      border-bottom-right-radius:4px;
+    }
+
+    .chat-msg.assistant .bubble{
+      background:rgba(15,23,42,0.96);
+      border:1px solid rgba(148,163,255,0.8);
+      color:#e5e7eb;
+      border-bottom-left-radius:4px;
+    }
+
+    .chat-input-row{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .chat-input-row textarea{
+      flex:1;
+      resize:none;
+      min-height:44px;
+      max-height:94px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,255,0.8);
+      padding:8px 10px;
+      background:rgba(15,23,42,0.95);
+      color:var(--fg);
+      font-family:inherit;
+      font-size:.9rem;
+    }
+
+    .chat-input-row textarea:focus{
+      outline:none;
+      box-shadow:0 0 0 1px rgba(124,240,255,0.75);
+    }
+
+    .btn-send{
+      padding:0 15px;
+      border-radius:12px;
+      border:none;
+      background:linear-gradient(120deg,var(--accent),var(--accent-2));
+      color:#020617;
+      font-weight:600;
+      cursor:pointer;
+      font-size:.86rem;
+      display:flex;
+      align-items:center;
+      white-space:nowrap;
+    }
+
+    .btn-send[disabled]{
+      opacity:.6;
+      cursor:default;
+    }
+
+    .helper{
+      margin-top:6px;
+      font-size:.75rem;
+      color:var(--muted);
+      opacity:.9;
     }
   </style>
 </head>
 <body>
+  <canvas id="stars" class="stars"></canvas>
 
-<h1>Support</h1>
-<p>Ask anything about xCommand Cloud.</p>
+  <div class="page">
+    <header>
+      <div class="logo">
+        <div class="logo-mark"></div>
+        <div>
+          <div class="logo-text">xCommand Cloud</div>
+          <div class="tagline">Automation workspaces · AI support</div>
+        </div>
+      </div>
 
-<div id="chat"></div>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/pay.html">Plans</a>
+        <a href="/support" class="active">Support</a>
+      </nav>
+    </header>
 
-<div id="inputRow">
-  <input id="msgBox" type="text" placeholder="Type your question..." />
-  <button onclick="sendMsg()">Send</button>
-</div>
+    <main>
+      <div class="shell">
+        <div class="title-row">
+          <div class="title-main">
+            <h1>Need help with your workspace?</h1>
+            <p>
+              Ask anything about payments, workspace access, or how to build flows.
+              The AI assistant uses the xCommand Cloud knowledge base to answer.
+            </p>
+          </div>
 
-<script>
-  const API_BASE = "";
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            AI assistant: online
+          </div>
+        </div>
 
-  let history = [];
+        <div class="grid">
+          <!-- Left side: quick help -->
+          <section class="panel">
+            <h2>Quick help</h2>
+            <p>Some common questions people ask before contacting support.</p>
 
-  function addMessage(role, text) {
-    const chat = document.getElementById("chat");
-    const div = document.createElement("div");
-    div.classList.add("msg", role);
-    div.textContent = text;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-  }
+            <div class="pill-row">
+              <span class="pill">Workspace access</span>
+              <span class="pill">Plan expiry</span>
+              <span class="pill">Stripe payments</span>
+              <span class="pill">Exporting workflows</span>
+            </div>
 
-  async function sendMsg() {
-    const input = document.getElementById("msgBox");
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
+            <ul class="faq-list">
+              <li>
+                <div class="faq-q">I paid but I can’t see my workspace link.</div>
+                <div class="faq-a">
+                  Search your email for “xCommand workspace ready”.
+                  If nothing shows, ask the AI bot here and include the email you used at checkout.
+                </div>
+              </li>
+              <li>
+                <div class="faq-q">What happens when my plan expires?</div>
+                <div class="faq-a">
+                  The container is stopped and wiped. Export your workflows as JSON before expiry.
+                  The AI assistant can walk you through how to export and re-import.
+                </div>
+              </li>
+              <li>
+                <div class="faq-q">Can I extend from 1-day to 5-day?</div>
+                <div class="faq-a">
+                  Yes. You can purchase a new plan with the same email.
+                  The AI can explain how expiry times are calculated for new purchases.
+                </div>
+              </li>
+              <li>
+                <div class="faq-q">Is there human support?</div>
+                <div class="faq-a">
+                  During beta, this AI bot is the main entry point.
+                  For billing-only issues, it will tell you exactly what to email and where.
+                </div>
+              </li>
+            </ul>
+          </section>
 
-    history.push({ role: "user", content: text });
-    addMessage("user", text);
-    addMessage("bot", "Thinking...");
+          <!-- Right side: chat -->
+          <section class="panel chat-wrap">
+            <h2>Chat with the AI assistant</h2>
+            <p>Describe your issue in one or two sentences. Include your email if it’s about a specific purchase.</p>
 
-    const resp = await fetch(API_BASE + "/support/chat", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ messages: history })
-    });
+            <div id="chatWindow" class="chat-window">
+              <div id="chatEmpty" class="chat-empty">
+                Start with something like:<br/>
+                <em>“I paid for a 1-day plan but my workspace link is not opening.”</em>
+              </div>
+            </div>
 
-    const data = await resp.json();
+            <div class="chat-input-row">
+              <textarea id="msgBox" placeholder="Type your question here..."></textarea>
+              <button id="sendBtn" class="btn-send">Send</button>
+            </div>
 
-    // remove "Thinking..."
-    const chat = document.getElementById("chat");
-    chat.removeChild(chat.lastChild);
+            <div class="helper">
+              This talks to a backend at <code>/support/chat</code> which uses your OpenAI model and
+              <code>support_knowledge.md</code> as the knowledge base.
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
 
-    if (data.reply) {
-      history.push({ role: "assistant", content: data.reply });
-      addMessage("bot", data.reply);
-    } else {
-      addMessage("bot", "Something went wrong.");
+  <script>
+    // Star background
+    (function(){
+      const c = document.getElementById("stars");
+      if (!c) return;
+      const ctx = c.getContext("2d");
+      let w,h,stars=[];
+
+      function resize(){
+        w = c.width = window.innerWidth;
+        h = c.height = window.innerHeight;
+        stars = Array.from({length: Math.min(200, Math.floor(w*h/9000))}, () => ({
+          x: Math.random()*w,
+          y: Math.random()*h,
+          r: Math.random()*1.2 + 0.2,
+          s: Math.random()*0.6 + 0.2
+        }));
+      }
+
+      function tick(){
+        ctx.clearRect(0,0,w,h);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        for (const s of stars){
+          s.y += s.s;
+          if (s.y > h) s.y = 0;
+          ctx.beginPath();
+          ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+          ctx.fill();
+        }
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      tick();
+    })();
+
+    // Chat logic – same contract as before
+    const API_BASE = "";  // same origin
+
+    const chatWindow = document.getElementById("chatWindow");
+    const chatEmpty  = document.getElementById("chatEmpty");
+    const msgBox     = document.getElementById("msgBox");
+    const sendBtn    = document.getElementById("sendBtn");
+
+    let history = [];
+
+    function appendMessage(role, text){
+      if (chatEmpty) chatEmpty.style.display = "none";
+
+      const wrap = document.createElement("div");
+      wrap.className = "chat-msg " + (role === "user" ? "user" : "assistant");
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+
+      wrap.appendChild(bubble);
+      chatWindow.appendChild(wrap);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
     }
-  }
-</script>
 
+    async function sendMsg(){
+      const text = (msgBox.value || "").trim();
+      if (!text) return;
+
+      msgBox.value = "";
+      msgBox.focus();
+
+      history.push({ role: "user", content: text });
+      appendMessage("user", text);
+      appendMessage("assistant", "Thinking...");
+
+      sendBtn.disabled = true;
+
+      try{
+        const resp = await fetch(API_BASE + "/support/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: history })
+        });
+
+        const data = await resp.json();
+
+        // remove "Thinking..."
+        chatWindow.removeChild(chatWindow.lastChild);
+
+        if (data.reply){
+          history.push({ role: "assistant", content: data.reply });
+          appendMessage("assistant", data.reply);
+        } else {
+          appendMessage("assistant", "Something went wrong while contacting support.");
+        }
+      } catch (err){
+        // remove "Thinking..."
+        chatWindow.removeChild(chatWindow.lastChild);
+        appendMessage("assistant", "Network error while calling /support/chat.");
+      } finally{
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMsg);
+    msgBox.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendMsg();
+      }
+    });
+  </script>
 </body>
 </html>
