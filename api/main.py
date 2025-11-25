@@ -1,25 +1,182 @@
-from fastapi.middleware.cors import CORSMiddleware
-import stripe
-import json, os, secrets
-from typing import Optional
+import json
+import os
+import secrets
 from datetime import datetime, timedelta, timezone
+from typing import List, Optional
+
+import stripe
 from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
 from db import fetch_all, execute
+from openai_client import chat_with_openai
 from provisioner import start_n8n_local, stop_container, remove_volume
+
 
 app = FastAPI()
 
+# --- CORS ---------------------------------------------------------------------
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # later we can restrict this
+    allow_origins=["*"],  # TODO: tighten this when you lock in frontend domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Knowledge base for the support bot --------------------------------------
+
+KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "support_knowledge.md")
+
+try:
+    with open(KNOWLEDGE_PATH, "r", encoding="utf-8") as f:
+        XCOMMAND_KNOWLEDGE = f.read()
+    print("[support] Loaded support_knowledge.md")
+except Exception as e:
+    print("[support] Failed to load support_knowledge.md:", e)
+    XCOMMAND_KNOWLEDGE = ""
+
+
+# --- Models -------------------------------------------------------------------
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+
+class ProvisionRequest(BaseModel):
+    email: EmailStr
+    plan: str  # '1d' or '5d'
+
+
+class CheckoutRequest(BaseModel):
+    email: EmailStr
+    plan: str  # "1d" or "5d"
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
+
+
+# --- Workspace provisioning core ---------------------------------------------
+
+
+def provision_core(email: str, plan: str):
+    """
+    Provision a new n8n workspace for the given email and plan.
+
+    - Valid plans: '1d' (24 hours) or '5d' (5 days)
+    - Creates app_users row if needed
+    - Inserts a payment record (dev/test)
+    - Inserts a workspace row
+    - Starts the n8n container with an expiry label
+    - Marks workspace active and stores its public URL
+    """
+    if plan not in ("1d", "5d"):
+        raise ValueError("plan must be '1d' or '5d'")
+
+    # Duration based on plan
+    days = 1 if plan == "1d" else 5
+
+    # Random workspace subdomain like "u-3d83d4"
+    sub = f"u-{secrets.token_hex(3)}"
+
+    # Root domain for dev vs prod (used for internal naming)
+    root = os.getenv("N8N_ROOT_DOMAIN", "localhost")
+    fqdn = f"{sub}.{root}" if root != "localhost" else f"{sub}.localhost"
+
+    # Timezone-aware UTC expiry
+    expires_dt = datetime.now(timezone.utc) + timedelta(days=days)
+    expires_iso = expires_dt.isoformat()
+
+    # Container + volume names
+    container_name = f"n8n_{sub}"
+    volume_name = f"n8n_{sub}_data"
+
+    # Ensure app_users row exists (idempotent)
+    execute(
+        """
+        insert into app_users (email)
+        values (%s)
+        on conflict (email) do nothing
+        """,
+        (email,),
+    )
+
+    # Record a fake payment (dev only)
+    amount_cents = 99 if days == 1 else 300
+    execute(
+        """
+        insert into payments (stripe_session_id, email, plan, amount_cents)
+        values (%s, %s, %s, %s)
+        on conflict (stripe_session_id) do nothing
+        """,
+        (f"test_{secrets.token_hex(6)}", email, plan, amount_cents),
+    )
+
+    # Create workspace row in "provisioning" state
+    execute(
+        """
+        insert into workspaces (email, plan, subdomain, fqdn, container_name, volume_name, status, expires_at)
+        values (%s, %s, %s, %s, %s, %s, 'provisioning', %s)
+        """,
+        (email, plan, sub, fqdn, container_name, volume_name, expires_dt),
+    )
+
+    # Boot local n8n with explicit expires_at for janitor label
+    host_port = start_n8n_local(
+        container_name=container_name,
+        volume_name=volume_name,
+        encryption_key=os.getenv("ENCRYPTION_KEY", "devkey"),
+        expires_at=expires_iso,
+    )
+
+    # Always use the HTTPS workspace subdomain as the public URL.
+    # Example: https://u-3d83d4.xcommand.cloud
+    workspace_root = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
+    public_url = f"https://{sub}.{workspace_root}"
+
+    # Mark active and store URL (overwrite fqdn with public URL)
+    execute(
+        "update workspaces set status='active', fqdn=%s where subdomain=%s",
+        (public_url, sub),
+    )
+
+    # Return the workspace row
+    rows = fetch_all(
+        """
+        select id, email, subdomain, fqdn, status, expires_at, created_at
+        from workspaces
+        where subdomain=%s
+        """,
+        (sub,),
+    )
+    if not rows:
+        raise RuntimeError("workspace row not found after insert")
+
+    return rows[0]
+
+
+# --- Health -------------------------------------------------------------------
+
+
+@app.get("/health")
+def health():
+    return {
+        "ok": True,
+        "service": "api",
+        "domain": os.getenv("N8N_ROOT_DOMAIN", "unset"),
+    }
+
+
+# --- Workspace lookup APIs ----------------------------------------------------
 
 
 @app.get("/workspaces/by-email/{email}")
@@ -44,6 +201,7 @@ def get_workspace_by_email(email: EmailStr):
 
     workspace = rows[0]
     return JSONResponse(jsonable_encoder({"ok": True, "workspace": workspace}))
+
 
 @app.get("/workspaces/all-by-email/{email}")
 def get_workspaces_by_email(email: EmailStr):
@@ -77,113 +235,26 @@ def get_workspaces_by_email(email: EmailStr):
     return JSONResponse(jsonable_encoder({"ok": True, "workspaces": rows}))
 
 
-
-
-def provision_core(email: str, plan: str):
-    # validate plan
-    if plan not in ("1d", "5d"):
-        raise ValueError("plan must be '1d' or '5d'")
-
-    # duration
-    days = 1 if plan == "1d" else 5
-
-    # random workspace subdomain like u-3d83d4
-    sub = f"u-{secrets.token_hex(3)}"
-
-    # root domain for dev vs prod
-    root = os.getenv("N8N_ROOT_DOMAIN", "localhost")
-    fqdn = f"{sub}.{root}" if root != "localhost" else f"{sub}.localhost"
-
-    # timezone-aware UTC expiry
-    expires_dt = datetime.now(timezone.utc) + timedelta(days=days)
-    expires_iso = expires_dt.isoformat()
-
-    # container + volume names
-    container_name = f"n8n_{sub}"
-    volume_name = f"n8n_{sub}_data"
-
-    # ensure app_users row exists (idempotent)
-    execute(
-        """
-        insert into app_users (email)
-        values (%s)
-        on conflict (email) do nothing
-        """,
-        (email,),
-    )
-
-    # record a fake payment (dev only)
-    amount_cents = 99 if days == 1 else 300
-    execute(
-        """
-        insert into payments (stripe_session_id, email, plan, amount_cents)
-        values (%s, %s, %s, %s)
-        on conflict (stripe_session_id) do nothing
-        """,
-        (f"test_{secrets.token_hex(6)}", email, plan, amount_cents),
-    )
-
-    # create workspace row
-    # create workspace row
-    execute(
-        """
-        insert into workspaces (email, plan, subdomain, fqdn, container_name, volume_name, status, expires_at)
-        values (%s, %s, %s, %s, %s, %s, 'provisioning', %s)
-        """,
-        (email, plan, sub, fqdn, container_name, volume_name, expires_dt),
-    )
-
-
-    # boot local n8n with explicit expires_at for janitor label
-    # boot local n8n with explicit expires_at for janitor label
-    host_port = start_n8n_local(
-        container_name=container_name,
-        volume_name=volume_name,
-        encryption_key=os.getenv("ENCRYPTION_KEY", "devkey"),
-        expires_at=expires_iso,
-    )
-
-    # Always use the HTTPS workspace subdomain as the public URL.
-    # Example: https://u-3d83d4.xcommand.cloud
-    workspace_root = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
-    url = f"https://{sub}.{workspace_root}"
-
-    # mark active and store url
-    execute(
-        "update workspaces set status='active', fqdn=%s where subdomain=%s",
-        (url, sub),
-    )
-
-
-    # return the workspace row
-    rows = fetch_all(
-        "select id, email, subdomain, fqdn, status, expires_at, created_at from workspaces where subdomain=%s",
-        (sub,),
-    )
-    if not rows:
-        raise RuntimeError("workspace row not found after insert")
-    return rows[0]
-
-
-
-
-
-@app.get("/health")
-def health():
-    return {
-        "ok": True,
-        "service": "api",
-        "domain": os.getenv("N8N_ROOT_DOMAIN", "unset"),
-    }
-
-
-class ProvisionRequest(BaseModel):
-    email: EmailStr
-    plan: str  # '1d' or '5d'
+# --- Workspace lifecycle management ------------------------------------------
 
 
 @app.post("/provision/test")
 def provision_test(req: ProvisionRequest):
+    """
+    Manually provision a workspace (test-only helper).
+    """
+    try:
+        row = provision_core(req.email, req.plan)
+        return JSONResponse(jsonable_encoder(row))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/provision/simulate")
+def provision_simulate(req: ProvisionRequest):
+    """
+    Another manual provision endpoint (kept for compatibility).
+    """
     try:
         row = provision_core(req.email, req.plan)
         return JSONResponse(jsonable_encoder(row))
@@ -193,11 +264,16 @@ def provision_test(req: ProvisionRequest):
 
 @app.post("/workspaces/{sub}/stop")
 def stop_workspace(sub: str = Path(..., pattern=r"^u-[0-9a-f]{6}$")):
+    """
+    Stop the container for a given workspace subdomain.
+    """
     rows = fetch_all(
-        "select container_name from workspaces where subdomain=%s", (sub,)
+        "select container_name from workspaces where subdomain=%s",
+        (sub,),
     )
     if not rows:
         raise HTTPException(404, "workspace not found")
+
     container_name = rows[0]["container_name"]
     stopped = stop_container(container_name)
     execute("update workspaces set status='stopping' where subdomain=%s", (sub,))
@@ -206,46 +282,42 @@ def stop_workspace(sub: str = Path(..., pattern=r"^u-[0-9a-f]{6}$")):
 
 @app.post("/workspaces/{sub}/wipe")
 def wipe_workspace(sub: str = Path(..., pattern=r"^u-[0-9a-f]{6}$")):
+    """
+    Wipe the Docker volume for a given workspace and mark it deleted.
+    """
     rows = fetch_all(
-        "select volume_name from workspaces where subdomain=%s", (sub,)
+        "select volume_name from workspaces where subdomain=%s",
+        (sub,),
     )
     if not rows:
         raise HTTPException(404, "workspace not found")
+
     volume_name = rows[0]["volume_name"]
     wiped = remove_volume(volume_name)
     execute("update workspaces set status='deleted' where subdomain=%s", (sub,))
     return {"ok": True, "wiped": wiped}
 
 
-@app.post("/provision/simulate")
-def provision_simulate(req: ProvisionRequest):
-    try:
-        row = provision_core(req.email, req.plan)
-        return JSONResponse(jsonable_encoder(row))
-    except Exception as e:
-        raise HTTPException(400, str(e))
-
-class CheckoutRequest(BaseModel):
-    email: EmailStr
-    plan: str                  # "1d" or "5d"
-    success_url: Optional[str] = None
-    cancel_url: Optional[str] = None
+# --- Stripe checkout + webhook -----------------------------------------------
 
 
 @app.post("/stripe/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest):
+    """
+    Create a Stripe Checkout session for a given email and plan.
+    """
     stripe.api_key = os.getenv("STRIPE_SECRET")
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe secret not configured")
 
-    # basic plan validation
+    # Basic plan validation
     if req.plan not in ("1d", "5d"):
         raise HTTPException(status_code=400, detail="Invalid plan")
 
-    # amounts in cents
+    # Amounts in cents
     amount_map = {
-        "1d": 100,   # $1
-        "5d": 300,   # $3
+        "1d": 100,  # $1
+        "5d": 300,  # $3
     }
     label_map = {
         "1d": "xCommand 24h n8n workspace",
@@ -254,7 +326,7 @@ async def create_checkout_session(req: CheckoutRequest):
 
     amount = amount_map[req.plan]
 
-    # Always use HTTPS URLs that Stripe accepts (ignore file:// from frontend)
+    # Always use HTTPS URLs that Stripe accepts (ignore frontend file:// urls)
     success_url = "https://app.xcommand.cloud/ready.html"
     cancel_url = "https://app.xcommand.cloud/pay.html"
 
@@ -290,6 +362,7 @@ async def stripe_webhook(request: Request):
     Webhook endpoint for Stripe checkout.session.completed.
 
     Expected payload shape (simplified):
+
     {
       "type": "checkout.session.completed",
       "data": {
@@ -332,3 +405,51 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
     return JSONResponse(jsonable_encoder({"ok": True, "workspace": workspace}))
+
+
+# --- AI Support Chat ----------------------------------------------------------
+
+
+@app.post("/support/chat")
+async def support_chat(payload: ChatRequest):
+    """
+    AI support endpoint.
+
+    - Only answers questions about xCommand Cloud:
+      plans, payments, workspaces, n8n usage inside the platform,
+      expiry rules, and troubleshooting.
+    - Politely declines anything outside this scope.
+    """
+    system_prompt = {
+        "role": "system",
+        "content": (
+            "You are the xCommand Cloud Support Assistant. "
+            "You ONLY answer questions about xCommand Cloud: what it is, who it is for, "
+            "plans, payments, workspace behavior, n8n usage inside this platform, "
+            "expiry rules, and troubleshooting. "
+            "If a question is unrelated (for example about health, politics, generic coding, "
+            "or other products), you must politely decline and say you are only for "
+            "xCommand Cloud support."
+        ),
+    }
+
+    knowledge_prompt = {
+        "role": "system",
+        "content": (
+            "Here is your product knowledge base for xCommand Cloud. "
+            "Use it as the source of truth when possible:\n\n"
+            f"{XCOMMAND_KNOWLEDGE or '[knowledge file not loaded]'}"
+        ),
+    }
+
+    messages = [system_prompt, knowledge_prompt]
+
+    for msg in payload.messages:
+        messages.append({"role": msg.role, "content": msg.content})
+
+    try:
+        reply = chat_with_openai(messages)
+        return {"reply": reply}
+    except Exception as e:
+        print("OpenAI error:", str(e))
+        return {"error": "openai_failure"}

@@ -108,6 +108,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
       DOCKER_HOST: ${DOCKER_HOST}
       N8N_ROOT_DOMAIN: ${N8N_ROOT_DOMAIN}  # e.g. xcommand.cloud (for u-xxxx.xcommand.cloud)
       ENCRYPTION_KEY: "local-dev-encryption-key-change-me"
@@ -156,9 +158,10 @@ services:
     container_name: xcommand-n8n-janitor
     working_dir: /janitor
     command: >
-      sh -c "pip install --no-cache-dir python-dateutil docker &&
-             echo 'Dependencies installed. Starting janitor...' &&
-             python -u /janitor/janitor.py"
+      sh -c "pip install --no-cache-dir python-dateutil docker psycopg2-binary &&
+           echo 'Dependencies installed. Starting janitor...' &&
+           python -u /janitor/janitor.py"
+
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1

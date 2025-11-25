@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>xCommand Cloud — Support</title>
+  <style>
+    body {
+      background: #0b0f1a;
+      color: #e9f0ff;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #chat {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    .msg {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+    .user {
+      background: #7cf0ff;
+      color: #050816;
+      margin-left: auto;
+    }
+    .bot {
+      background: rgba(255,255,255,0.08);
+    }
+    #inputRow {
+      display: flex;
+      gap: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.2);
+      color: #e9f0ff;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #7cf0ff;
+      color: #050816;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Support</h1>
+<p>Ask anything about xCommand Cloud.</p>
+
+<div id="chat"></div>
+
+<div id="inputRow">
+  <input id="msgBox" type="text" placeholder="Type your question..." />
+  <button onclick="sendMsg()">Send</button>
+</div>
+
+<script>
+  const API_BASE = "http://localhost:3001";
+
+  let history = [];
+
+  function addMessage(role, text) {
+    const chat = document.getElementById("chat");
+    const div = document.createElement("div");
+    div.classList.add("msg", role);
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function sendMsg() {
+    const input = document.getElementById("msgBox");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+
+    history.push({ role: "user", content: text });
+    addMessage("user", text);
+    addMessage("bot", "Thinking...");
+
+    const resp = await fetch(API_BASE + "/support/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ messages: history })
+    });
+
+    const data = await resp.json();
+
+    // remove "Thinking..."
+    const chat = document.getElementById("chat");
+    chat.removeChild(chat.lastChild);
+
+    if (data.reply) {
+      history.push({ role: "assistant", content: data.reply });
+      addMessage("bot", data.reply);
+    } else {
+      addMessage("bot", "Something went wrong.");
+    }
+  }
+</script>
+
+</body>
+</html>

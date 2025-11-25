@@ -33,6 +33,11 @@ def ready_page():
 def health():
     return {"ok": True}
 
+@app.get("/support", response_class=HTMLResponse)
+def support_page():
+    return FileResponse("support.html")
+
+
 
 @app.get("/workspace", response_class=HTMLResponse)
 def workspace(email: str):
