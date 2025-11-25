@@ -423,11 +423,11 @@ async def support_chat(payload: ChatRequest):
     """
     AI support endpoint.
 
-    - Only answers questions about xCommand Cloud:
-      plans, payments, workspaces, n8n usage inside the platform,
-      expiry rules, and troubleshooting.
-    - Politely declines anything outside this scope.
+    - Answers only questions about xCommand Cloud: plans, payments, workspaces, expiry, provisioning,
+      troubleshooting, and n8n workflow basics.
     """
+
+    # ------------------- 1) SYSTEM PROMPT -------------------------------------
     system_prompt = {
         "role": "system",
         "content": (
@@ -436,65 +436,37 @@ async def support_chat(payload: ChatRequest):
             "- xCommand Cloud rents short-lived n8n automation workspaces ('containers' or 'workspaces')\n"
             "  on plans such as 24-hour and 5-Day.\n"
             "- Users pay via Stripe checkout and then receive an email with their workspace URL.\n"
-            "- Workspaces are ephemeral: after expiry the container is stopped and wiped, so users must\n"
-            "  export their flows as JSON if they want to keep them.\n\n"
-            "Scope:\n"
-            "- Answer ONLY questions about xCommand Cloud, its plans, workspaces, Stripe payments for\n"
-            "  xCommand Cloud, and basic n8n workflow questions that are covered by the knowledge base.\n"
-            "- If the user asks about topics unrelated to xCommand Cloud (health, generic coding, other\n"
-            "  products), politely say you only handle xCommand Cloud support and redirect them.\n\n"
-            "Personality and style (Option 4 hybrid):\n"
+            "- Workspaces are ephemeral: after expiry the container is stopped and wiped.\n\n"
+            "Personality and style (Hybrid):\n"
             "- Friendly but professional.\n"
-            "- Use clear, simple language.\n"
-            "- Prefer 2–5 short sentences or a short bulleted list, not a giant wall of text.\n"
-            "- Be structured and actionable: always give concrete next steps.\n"
-            "- Do not write marketing fluff; sound like a helpful support engineer.\n\n"
-            "Issue types and behaviour:\n"
-            "First, internally decide which category the current problem fits:\n"
-            "- 'workspace_access': cannot open workspace, link not working, 4xx/5xx errors, login issues.\n"
-            "- 'expiry': when the plan ends, container deletion, extending time, buying a new plan.\n"
-            "- 'workflow_export': exporting/importing JSON, backing up flows before deletion,\n"
-            "   moving flows to the user's own n8n instance.\n"
-            "- 'billing': payment failed, duplicate charge, refund, invoice/receipt, card issues.\n"
-            "- 'general': anything else about how xCommand Cloud works.\n\n"
-            "Then respond according to the category:\n"
-            "- For workspace_access:\n"
-            "  * Ask for: email used at checkout, plan type (24-hour vs 5-Day), and approximate purchase time.\n"
-            "  * Suggest 1–3 precise checks (correct link, email spam/junk, waiting a few minutes after payment, etc.).\n"
-            "  * If it clearly needs a human, provide the support email and list exactly what details they should send.\n"
-            "- For expiry:\n"
-            "  * Explain simply how expiry is calculated based on the plan.\n"
-            "  * Explain what the user should assume about remaining time if there is no exact timer available.\n"
-            "  * Remind them to export workflows before expiry and, if needed, give brief export steps.\n"
-            "- For workflow_export:\n"
-            "  * Give step-by-step instructions for exporting an n8n workflow as JSON.\n"
-            "  * Briefly explain how to import that JSON into another n8n instance later.\n"
-            "  * Emphasise that flows are deleted after the container is cleaned up.\n"
-            "- For billing:\n"
-            "  * Be conservative: never guess about money or promise refunds.\n"
-            "  * Explain what the AI can and cannot do for billing.\n"
-            "  * Direct them to the billing/support email with a short checklist of what to include\n"
-            "    (email used for payment, plan type, date/time of payment, and any Stripe receipt/ID).\n"
-            "- For general:\n"
-            "  * Answer from the xCommand Cloud knowledge base.\n"
-            "  * Keep the answer focused and avoid going off-topic.\n\n"
-            "Always:\n"
-            "- If you ask the user to email support, keep it to one short paragraph and a bullet list\n"
-            "  of details they should include.\n"
-            "- Never invent policies, features, or promises that are not supported by the knowledge base.\n"
+            "- Clear, simple, and structured.\n"
+            "- Prefer short lists or 2–5 sentences.\n"
+            "- Never use marketing tone or long paragraphs.\n\n"
+            "Issue type behavior:\n"
+            "- workspace_access: troubleshooting 4xx/5xx errors, wrong links, not loading.\n"
+            "- expiry: remaining time, deletion rules, how expiry works.\n"
+            "- workflow_export: exporting/importing JSON.\n"
+            "- billing: duplicate charges, payment issues.\n"
+            "- general: anything else about xCommand Cloud.\n\n"
+            "Rules:\n"
+            "- Always stay inside the xCommand Cloud domain.\n"
+            "- If asked something unrelated (health, generic coding, etc.) decline politely.\n"
+            "- When giving steps, be short and actionable.\n"
+            "- Never invent policies or features not in the knowledge base.\n"
         ),
     }
 
-
+    # ------------------- 2) KNOWLEDGE BASE PROMPT -----------------------------
     knowledge_prompt = {
         "role": "system",
         "content": (
-            "Here is your product knowledge base for xCommand Cloud. "
-            "Use it as the source of truth when possible:\n\n"
+            "Here is the xCommand Cloud product knowledge base. "
+            "Use it as the source of truth:\n\n"
             f"{XCOMMAND_KNOWLEDGE or '[knowledge file not loaded]'}"
         ),
     }
 
+    # ------------------- 3) EMAIL EXTRACTION ----------------------------------
     user_email = extract_email_from_messages(payload.messages)
 
     if user_email:
@@ -502,32 +474,106 @@ async def support_chat(payload: ChatRequest):
             "role": "system",
             "content": (
                 f"The user's email appears to be: {user_email}. "
-                "Use this email when giving next steps or referencing their account, "
-                "and do NOT ask them to repeat it unless absolutely necessary."
+                "Use this email when answering. Do NOT ask them to repeat it unless truly needed."
             )
         }
     else:
         email_context = {
             "role": "system",
             "content": (
-                "No email was found in the user's messages yet. "
-                "If the issue involves payment, workspace access, or billing, "
-                "ask for the email used at checkout."
+                "No email detected yet. If the question involves payments or workspace access, "
+                "ask for the checkout email."
             )
         }
-    
 
-    messages = [system_prompt, knowledge_prompt]
+    # ------------------- 4) WORKSPACE LOOKUP ----------------------------------
+    # Helper function to query DB
+    def lookup_latest_workspace(email: str):
+        try:
+            rows = fetch_all(
+                """
+                select
+                  plan,
+                  status,
+                  fqdn,
+                  expires_at,
+                  created_at
+                from workspaces
+                where email = %s
+                  and status <> 'deleted'
+                order by created_at desc
+                limit 1
+                """,
+                (email,),
+            )
+        except Exception:
+            return None
 
+        if not rows:
+            return None
+        return rows[0]
+
+    # Build workspace context
+    if user_email:
+        ws = lookup_latest_workspace(user_email)
+        if ws:
+            plan = ws.get("plan")
+            status = ws.get("status")
+            fqdn = ws.get("fqdn")
+            expires_at = ws.get("expires_at")
+            created_at = ws.get("created_at")
+
+            # Convert datetimes safely
+            def dt(x):
+                if isinstance(x, datetime):
+                    return x.astimezone(timezone.utc).isoformat()
+                return str(x)
+
+            workspace_context = {
+                "role": "system",
+                "content": (
+                    "Workspace lookup result:\n"
+                    f"- plan: {plan}\n"
+                    f"- status: {status}\n"
+                    f"- url: {fqdn}\n"
+                    f"- created_at: {dt(created_at)} (UTC)\n"
+                    f"- expires_at: {dt(expires_at)} (UTC)\n\n"
+                    "Use this information when answering. "
+                    "If status='active' and user reports 502/504, explain likely causes. "
+                    "If expired or near expiry, explain expiry rules. "
+                    "If no workspace should exist yet, explain provisioning delay."
+                )
+            }
+        else:
+            workspace_context = {
+                "role": "system",
+                "content": (
+                    f"No active workspace found for {user_email}. "
+                    "If the user claims they paid, ask for plan type and payment time, "
+                    "and instruct them what to send to human support."
+                )
+            }
+    else:
+        workspace_context = {
+            "role": "system",
+            "content": (
+                "Workspace lookup skipped because no email has been identified yet."
+            )
+        }
+
+    # ------------------- 5) FINAL MESSAGE LIST --------------------------------
     messages = [
-    system_prompt,
-    knowledge_prompt,
-    email_context,   # 🔥 NEW
+        system_prompt,
+        knowledge_prompt,
+        email_context,
+        workspace_context,
     ]
-    
+
+    # Append user + assistant history
     for msg in payload.messages:
         messages.append({"role": msg.role, "content": msg.content})
 
+    # ------------------- 6) CALL OPENAI ---------------------------------------
     try:
         reply = chat_with_openai(messages)
         return {"reply": reply}
