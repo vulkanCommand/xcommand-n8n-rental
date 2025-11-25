@@ -580,6 +580,12 @@
       }, 350);
     }
 
+    function autoResizeTextbox(){
+      msgBox.style.height = "auto";
+      msgBox.style.height = Math.min(msgBox.scrollHeight, 120) + "px";
+    }
+
+
     function hideTypingIndicator(){
       if (typingInterval) {
         clearInterval(typingInterval);
@@ -641,6 +647,7 @@
     }
 
     sendBtn.addEventListener("click", sendMsg);
+    msgBox.addEventListener("input", autoResizeTextbox);
     msgBox.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey){
         e.preventDefault();
