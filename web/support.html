@@ -596,6 +596,17 @@
       }
     }
 
+    function initChat(){
+      const welcome =
+        "Hi, I’m the xCommand Cloud assistant. " +
+        "I can help with payments, workspace access, expiry times, and exporting your n8n workflows. " +
+        "Tell me what happened in one or two sentences (and include your email if it’s about a specific purchase).";
+
+      history.push({ role: "assistant", content: welcome });
+      appendMessage("assistant", welcome);
+      if (msgBox) msgBox.focus();
+    }
+
     sendBtn.addEventListener("click", sendMsg);
     msgBox.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey){
@@ -603,6 +614,9 @@
         sendMsg();
       }
     });
+
+    document.addEventListener("DOMContentLoaded", initChat);
   </script>
+
 </body>
 </html>
