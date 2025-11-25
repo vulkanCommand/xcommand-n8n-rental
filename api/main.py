@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -63,6 +64,13 @@ class CheckoutRequest(BaseModel):
     plan: str  # "1d" or "5d"
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
+
+def extract_email_from_messages(messages):
+    for item in reversed(messages):  # check newest first
+        match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", item.content)
+        if match:
+            return match.group(0)
+    return None
 
 
 # --- Workspace provisioning core ---------------------------------------------
@@ -487,8 +495,36 @@ async def support_chat(payload: ChatRequest):
         ),
     }
 
+    user_email = extract_email_from_messages(payload.messages)
+
+    if user_email:
+        email_context = {
+            "role": "system",
+            "content": (
+                f"The user's email appears to be: {user_email}. "
+                "Use this email when giving next steps or referencing their account, "
+                "and do NOT ask them to repeat it unless absolutely necessary."
+            )
+        }
+    else:
+        email_context = {
+            "role": "system",
+            "content": (
+                "No email was found in the user's messages yet. "
+                "If the issue involves payment, workspace access, or billing, "
+                "ask for the email used at checkout."
+            )
+        }
+    
+
     messages = [system_prompt, knowledge_prompt]
 
+    messages = [
+    system_prompt,
+    knowledge_prompt,
+    email_context,   # 🔥 NEW
+    ]
+    
     for msg in payload.messages:
         messages.append({"role": msg.role, "content": msg.content})
 
