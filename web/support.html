@@ -242,6 +242,11 @@
       color:#c7d2fe;
       background:rgba(15,23,42,0.95);
       white-space:nowrap;
+      cursor:pointer;
+    }
+
+    .pill:hover{
+      border-color:rgba(124,240,255,0.8);
     }
 
     .faq-list{
@@ -301,6 +306,9 @@
     .chat-msg{
       margin:6px 0;
       display:flex;
+      opacity:0;
+      transform:translateY(6px);
+      animation:fadeIn 180ms ease-out forwards;
     }
 
     .chat-msg.user{
@@ -384,20 +392,12 @@
       opacity:.9;
     }
 
-    .chat-msg {
-      opacity: 0;
-      transform: translateY(6px);
-      animation: fadeIn 180ms ease-out forwards;
-    }
-    
     @keyframes fadeIn {
       to {
-        opacity: 1;
-        transform: translateY(0);
+        opacity:1;
+        transform:translateY(0);
       }
     }
-
-    
   </style>
 </head>
 <body>
@@ -487,6 +487,22 @@
             <h2>Chat with the AI assistant</h2>
             <p>Describe your issue in one or two sentences. Include your email if it’s about a specific purchase.</p>
 
+            <!-- Quick question chips -->
+            <div class="pill-row" style="margin-bottom:8px;">
+              <button type="button" class="pill" onclick="sendPresetQuestion('I paid but my workspace link is not opening. My email is _____. Can you help me check what is wrong?')">
+                Workspace link not opening
+              </button>
+              <button type="button" class="pill" onclick="sendPresetQuestion('When exactly does my current plan expire? My email used for payment is _____.')">
+                When does my plan expire?
+              </button>
+              <button type="button" class="pill" onclick="sendPresetQuestion('How do I export my n8n workflows as JSON before my container is deleted?')">
+                Export workflows
+              </button>
+              <button type="button" class="pill" onclick="sendPresetQuestion('I think I was charged incorrectly. How do I contact billing support?')">
+                Billing issue
+              </button>
+            </div>
+
             <div id="chatWindow" class="chat-window">
               <div id="chatEmpty" class="chat-empty">
                 Start with something like:<br/>
@@ -500,6 +516,8 @@
             </div>
 
             <div class="helper">
+              This chat talks to <code>/support/chat</code>, which uses your OpenAI model
+              and <code>support_knowledge.md</code> as its knowledge base.
             </div>
           </section>
         </div>
@@ -600,7 +618,6 @@
       msgBox.style.height = Math.min(msgBox.scrollHeight, 120) + "px";
     }
 
-
     function hideTypingIndicator(){
       if (typingInterval) {
         clearInterval(typingInterval);
@@ -650,6 +667,13 @@
       }
     }
 
+    function sendPresetQuestion(text){
+      if (sendBtn.disabled) return;
+      msgBox.value = text;
+      autoResizeTextbox();
+      sendMsg();
+    }
+
     function initChat(){
       const welcome =
         "Hi, I’m the xCommand Cloud assistant. " +
@@ -672,7 +696,5 @@
 
     document.addEventListener("DOMContentLoaded", initChat);
   </script>
-
-
 </body>
 </html>
