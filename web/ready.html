@@ -519,19 +519,31 @@ async function poll(email) {
     console.warn("no localStorage", e);
   }
 
-  startBtn.addEventListener("click", () => {
-    const email = emailInput.value.trim();
-    if (!email) {
-      errorText.textContent = "Please enter the email you used at checkout.";
-      emailInput.focus();
-      return;
-    }
-    errorText.textContent = "";
-    setStatus("provisioning");
-    setLoading(true);
-    startPolling(email);
-    setTimeout(() => setLoading(false), 1200);
-  });
+startBtn.addEventListener("click", () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    errorText.textContent = "Please enter the email you used at checkout.";
+    emailInput.focus();
+    return;
+  }
+
+  // remember the email (optional)
+  try {
+    localStorage.setItem("x_email", email);
+  } catch (e) {}
+
+  // reset UI for new search
+  errorText.textContent = "";
+  workspaceInfo.textContent = "";
+  workspaceList.innerHTML = "";
+  workspaceBox.style.display = "none";
+
+  setStatus("provisioning");
+  setLoading(true);
+  startPolling(email);
+  setTimeout(() => setLoading(false), 1200);
+});
+
 </script>
 </body>
 </html>
