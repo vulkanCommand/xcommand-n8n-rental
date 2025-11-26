@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import json
 import urllib.request
 import urllib.parse
@@ -31,6 +31,51 @@ def ready_page():
 def health():
     return {"ok": True}
 
+
+# ---------- SUPPORT PAGE + AI CHAT ----------
+
+@app.get("/support", response_class=HTMLResponse)
+def support_page():
+    """
+    Serve the support UI (support.html).
+    """
+    return FileResponse("support.html")
+
+
+@app.post("/support/chat")
+async def support_chat_proxy(request: Request):
+    """
+    Browser -> app.xcommand.cloud/support/chat
+            -> this web container
+            -> forwards JSON body to api:8001/support/chat
+    """
+    body = await request.body()
+
+    url = f"{API_BASE}/support/chat"
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            resp_body = resp.read()
+            status = resp.getcode()
+    except Exception as e:
+        print("support_chat_proxy error:", e)
+        return JSONResponse({"error": "proxy_failure"}, status_code=502)
+
+    try:
+        data = json.loads(resp_body.decode("utf-8"))
+    except Exception:
+        return JSONResponse({"error": "invalid_response_from_api"}, status_code=502)
+
+    return JSONResponse(data, status_code=status)
+
+
+# ---------- WORKSPACE LOOKUP PAGE ----------
 
 @app.get("/workspace", response_class=HTMLResponse)
 def workspace(email: str):
