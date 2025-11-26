@@ -190,6 +190,58 @@
       gap: 6px;
     }
 
+    .workspace-box {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  display: grid;
+  gap: 12px;
+}
+
+#workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workspace-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(9, 16, 35, 0.9);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-size: 13px;
+}
+
+.workspace-item-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-item-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.workspace-item-link {
+  font-size: 13px;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: transparent;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.workspace-item-link:hover {
+  border-color: rgba(255,255,255,0.4);
+}
+
+
     .workspace-box .label {
       font-size: 12px;
       color: var(--muted);
@@ -258,12 +310,12 @@
     </div>
 
     <div class="workspace-box" id="workspace-box" style="display:none;">
-      <div class="label">Workspace</div>
-      <div id="workspace-info"></div>
-      <a id="workspace-link" class="workspace-link" href="#" target="_blank" rel="noopener noreferrer">
-        Open my n8n workspace →
-      </a>
+      <div class="label">Your workspaces</div>
+      <div id="workspace-info" class="small"></div>
+    
+      <div id="workspace-list"></div>
     </div>
+
 
     <div class="error" id="error-text"></div>
 
@@ -322,7 +374,7 @@
   const hintText      = document.getElementById("hint-text");
   const workspaceBox  = document.getElementById("workspace-box");
   const workspaceInfo = document.getElementById("workspace-info");
-  const workspaceLink = document.getElementById("workspace-link");
+  const workspaceList = document.getElementById("workspace-list");
 
   let pollTimer = null;
 
@@ -345,87 +397,93 @@
   }
 
   // Fetch ALL workspaces for this email
-  async function fetchWorkspaces(email) {
-    const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
-    const res = await fetch(url);
-
-    // 404 = no workspaces for this email yet
-    if (res.status === 404) {
-      return [];
-    }
-
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (!data.ok) return [];
-    return data.workspaces || [];
+async function fetchWorkspaces(email) {
+  const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}`);
   }
+  return res.json();
+}
 
-  async function poll(email) {
-    try {
-      const workspaces = await fetchWorkspaces(email);
 
-      // No workspace rows yet
-      if (!workspaces.length) {
-        setStatus("provisioning");
-        workspaceBox.style.display = "none";
-        errorText.textContent = "No workspace found for this email. Make sure you used the same email at checkout.";
-        return;
-      }
+async function poll(email) {
+  try {
+    const data = await fetchWorkspaces(email);
 
-      errorText.textContent = "";
-
-      // Any active workspaces?
-      const activeWorkspaces = workspaces.filter(ws => ws.status === "active");
-      const displayWorkspaces = activeWorkspaces.length ? activeWorkspaces : workspaces;
-
-      setStatus("active");
-      workspaceBox.style.display = "grid";
-
-      // Build list of cards inside workspace-info
-      const html = displayWorkspaces
-        .map(ws => {
-          const fqdn = ws.fqdn || `${ws.subdomain || ""}.xcommand.cloud`;
-          const url = fqdn.startsWith("http") ? fqdn : `https://${fqdn}`;
-          const exp = ws.expires_at || "unknown";
-          const plan = ws.plan || "?";
-
-          return `
-            <div style="margin-bottom: 10px; padding: 10px 12px; border-radius: 12px;
-                        background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);">
-              <div><strong>${ws.subdomain || "Workspace"}</strong> — plan: ${plan}</div>
-              <div style="font-size:12px; color:#9cb3ff; margin:4px 0;">
-                Expires at (UTC): ${exp}
-              </div>
-              <a href="${url}" target="_blank" rel="noopener noreferrer"
-                 style="display:inline-flex; margin-top:4px; padding:6px 12px; border-radius:999px;
-                        border:1px solid rgba(120,245,176,0.7); background:rgba(120,245,176,0.1);
-                        color:#78f5b0; font-size:13px; text-decoration:none;">
-                Open this workspace →
-              </a>
-            </div>
-          `;
-        })
-        .join("");
-
-      workspaceInfo.innerHTML = html;
-
-      // We no longer need the single global link button
-      workspaceLink.style.display = "none";
-
-      // Once at least one workspace is live, stop polling
-      if (activeWorkspaces.length && pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
-    } catch (err) {
-      console.error(err);
+    // Expecting: { ok: true, workspaces: [...] }
+    if (!data || !data.ok || !Array.isArray(data.workspaces) || data.workspaces.length === 0) {
+      errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
       workspaceBox.style.display = "none";
-      errorText.textContent = "Could not reach the API. Please try again in a moment.";
+      return;
     }
+
+    const workspaces = data.workspaces;
+    errorText.textContent = "";
+
+    // If at least one is active, show active status; else show provisioning
+    const hasActive = workspaces.some(ws => ws.status === "active");
+    if (hasActive) {
+      setStatus("active");
+    } else {
+      setStatus("provisioning");
+    }
+
+    workspaceBox.style.display = "grid";
+
+    // Info text at the top
+    workspaceInfo.textContent =
+      workspaces.length === 1
+        ? "We found 1 workspace for this email."
+        : `We found ${workspaces.length} workspaces for this email.`;
+
+    // Render list
+    workspaceList.innerHTML = "";
+    for (const ws of workspaces) {
+      const row = document.createElement("div");
+      row.className = "workspace-item";
+
+      const main = document.createElement("div");
+      main.className = "workspace-item-main";
+
+      const title = document.createElement("div");
+      title.textContent = ws.fqdn || ws.subdomain || "Workspace";
+
+      const meta = document.createElement("div");
+      meta.className = "workspace-item-meta";
+      meta.textContent = [
+        ws.plan ? `Plan: ${ws.plan}` : null,
+        ws.status ? `Status: ${ws.status}` : null,
+        ws.expires_at ? `Expires: ${ws.expires_at}` : null,
+      ].filter(Boolean).join(" · ");
+
+      main.appendChild(title);
+      main.appendChild(meta);
+
+      const link = document.createElement("a");
+      link.className = "workspace-item-link";
+      link.href = ws.fqdn.startsWith("http") ? ws.fqdn : `http://${ws.fqdn}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = (ws.status === "active") ? "Open" : "Not ready";
+
+      // For now, keep inactive ones disabled (we’ll make this smarter in Issue 2)
+      if (ws.status !== "active" || !ws.fqdn) {
+        link.style.opacity = "0.6";
+        link.style.pointerEvents = "none";
+      }
+
+      row.appendChild(main);
+      row.appendChild(link);
+      workspaceList.appendChild(row);
+    }
+
+  } catch (err) {
+    console.error(err);
+    errorText.textContent = "Could not reach the API. Please try again in a moment.";
   }
+}
+
 
 
   function startPolling(email) {
