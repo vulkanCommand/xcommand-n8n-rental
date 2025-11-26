@@ -344,63 +344,81 @@
     startBtn.textContent = isLoading ? "Looking up workspace…" : "Find my workspace";
   }
 
-  // NEW: handle 404 (no workspace) cleanly
-  async function fetchWorkspace(email) {
-    const url = `${API_BASE}/workspaces/by-email/${encodeURIComponent(email)}`;
+  // Fetch ALL workspaces for this email
+  async function fetchWorkspaces(email) {
+    const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
     const res = await fetch(url);
 
-    // 404 = no workspace for this email yet
+    // 404 = no workspaces for this email yet
     if (res.status === 404) {
-      return null;
+      return [];
     }
 
     if (!res.ok) {
       throw new Error(`API error ${res.status}`);
     }
 
-    return res.json();
+    const data = await res.json();
+    if (!data.ok) return [];
+    return data.workspaces || [];
   }
 
   async function poll(email) {
     try {
-      const data = await fetchWorkspace(email);
+      const workspaces = await fetchWorkspaces(email);
 
-      // No workspace yet (404 case)
-      if (!data) {
+      // No workspace rows yet
+      if (!workspaces.length) {
         setStatus("provisioning");
         workspaceBox.style.display = "none";
         errorText.textContent = "No workspace found for this email. Make sure you used the same email at checkout.";
         return;
       }
 
-      // Shape mismatch / still provisioning in DB
-      if (!data.ok || !data.workspace) {
-        setStatus("provisioning");
-        workspaceBox.style.display = "none";
-        errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
-        return;
-      }
-
-      const ws = data.workspace;
       errorText.textContent = "";
 
-      if (ws.status === "active") {
-        setStatus("active");
-        workspaceBox.style.display = "grid";
-        workspaceInfo.textContent =
-          `${ws.fqdn || "Workspace ready"} — expires at ${ws.expires_at || "unknown"}`;
+      // Any active workspaces?
+      const activeWorkspaces = workspaces.filter(ws => ws.status === "active");
+      const displayWorkspaces = activeWorkspaces.length ? activeWorkspaces : workspaces;
 
-        if (ws.fqdn) {
-          workspaceLink.href = ws.fqdn.startsWith("http") ? ws.fqdn : `http://${ws.fqdn}`;
-        }
+      setStatus("active");
+      workspaceBox.style.display = "grid";
 
-        if (pollTimer) {
-          clearInterval(pollTimer);
-          pollTimer = null;
-        }
-      } else {
-        setStatus("provisioning");
-        workspaceBox.style.display = "none";
+      // Build list of cards inside workspace-info
+      const html = displayWorkspaces
+        .map(ws => {
+          const fqdn = ws.fqdn || `${ws.subdomain || ""}.xcommand.cloud`;
+          const url = fqdn.startsWith("http") ? fqdn : `https://${fqdn}`;
+          const exp = ws.expires_at || "unknown";
+          const plan = ws.plan || "?";
+
+          return `
+            <div style="margin-bottom: 10px; padding: 10px 12px; border-radius: 12px;
+                        background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);">
+              <div><strong>${ws.subdomain || "Workspace"}</strong> — plan: ${plan}</div>
+              <div style="font-size:12px; color:#9cb3ff; margin:4px 0;">
+                Expires at (UTC): ${exp}
+              </div>
+              <a href="${url}" target="_blank" rel="noopener noreferrer"
+                 style="display:inline-flex; margin-top:4px; padding:6px 12px; border-radius:999px;
+                        border:1px solid rgba(120,245,176,0.7); background:rgba(120,245,176,0.1);
+                        color:#78f5b0; font-size:13px; text-decoration:none;">
+                Open this workspace →
+              </a>
+            </div>
+          `;
+        })
+        .join("");
+
+      workspaceInfo.innerHTML = html;
+
+      // We no longer need the single global link button
+      workspaceLink.style.display = "none";
+
+      // Once at least one workspace is live, stop polling
+      if (activeWorkspaces.length && pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
     } catch (err) {
       console.error(err);
@@ -408,6 +426,7 @@
       errorText.textContent = "Could not reach the API. Please try again in a moment.";
     }
   }
+
 
   function startPolling(email) {
     if (pollTimer) clearInterval(pollTimer);
