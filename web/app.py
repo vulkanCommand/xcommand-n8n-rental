@@ -1,21 +1,19 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
 import json
 import urllib.request
 import urllib.parse
-import os  # NEW
+import os
 
 app = FastAPI()
 
 API_BASE = "http://api:8001"
-
-# NEW: use the same base domain everywhere
 WORKSPACE_BASE_DOMAIN = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
 
 
 @app.get("/", response_class=HTMLResponse)
 def landing():
-    # Serve your futuristic landing page from index.html
+    # Static landing page
     return FileResponse("index.html")
 
 
@@ -33,53 +31,13 @@ def ready_page():
 def health():
     return {"ok": True}
 
-@app.get("/support", response_class=HTMLResponse)
-def support_page():
-    return FileResponse("support.html")
-
-
-from fastapi.responses import JSONResponse
-
-
-@app.post("/support/chat")
-async def support_chat_proxy(request: Request):
-    """
-    Proxy endpoint for the support chat.
-
-    Browser -> app.xcommand.cloud/support/chat
-            -> web container
-            -> forwards JSON to api:8001/support/chat inside Docker network
-    """
-    body = await request.body()
-
-    url = f"{API_BASE}/support/chat"
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req) as resp:
-            resp_body = resp.read()
-            status = resp.getcode()
-    except Exception as e:
-        print("support_chat_proxy error:", e)
-        return JSONResponse({"error": "proxy_failure"}, status_code=502)
-
-    try:
-        data = json.loads(resp_body.decode("utf-8"))
-    except Exception:
-        # If API returned non-JSON for some reason
-        return JSONResponse({"error": "invalid_response_from_api"}, status_code=502)
-
-    return JSONResponse(data, status_code=status)
-
 
 @app.get("/workspace", response_class=HTMLResponse)
 def workspace(email: str):
-    # call API: /workspaces/all-by-email/{email}
+    """
+    Look up ALL active workspaces for this email.
+    This is what the 'Find my workspace' button should use.
+    """
     encoded_email = urllib.parse.quote(email, safe="")
     url = f"{API_BASE}/workspaces/all-by-email/{encoded_email}"
 
@@ -124,15 +82,15 @@ def workspace(email: str):
         subdomain = ws.get("subdomain", "")
         plan = ws.get("plan", "?")
 
-        # Always build HTTPS URL from subdomain + base domain
+        # Build canonical https URL from subdomain + base domain
         if subdomain:
             ws_url = f"https://{subdomain}.{WORKSPACE_BASE_DOMAIN}"
         else:
             ws_url = ws.get("fqdn", "#")
 
         cards_html += f"""
-        <div style="border-radius: 14px; padding: 16px 20px; margin-bottom: 16px;
-                    background: #020617; border: 1px solid #1f2937;">
+        <section style="border-radius: 16px; padding: 18px 20px; margin-bottom: 18px;
+                        background: #020617; border: 1px solid #1f2937;">
           <p><strong>Workspace ID:</strong> {subdomain}</p>
           <p><strong>Plan:</strong> {plan}</p>
           <p><strong>Status:</strong> {status}</p>
@@ -140,7 +98,7 @@ def workspace(email: str):
 
           <p style="margin-top: 10px;">
             <a href="{ws_url}" target="_blank" rel="noopener"
-               style="padding: 8px 16px; background: #22c55e; color: white;
+               style="padding: 9px 18px; background: #22c55e; color: white;
                       text-decoration: none; border-radius: 999px; font-size: 14px;">
               Open this workspace
             </a>
@@ -148,22 +106,22 @@ def workspace(email: str):
           <p style="margin-top: 4px; font-size: 12px; color: #9ca3af;">
             URL: <code style="font-size: 12px;">{ws_url}</code>
           </p>
-        </div>
+        </section>
         """
 
     count = len(workspaces)
-    count_text = (
-        "You currently have 1 active workspace."
-        if count == 1
-        else f"You currently have {count} active workspaces."
-    )
+    if count == 1:
+        count_text = "You currently have 1 active workspace."
+    else:
+        count_text = f"You currently have {count} active workspaces."
 
     html = f"""
     <html>
-      <head><title>Your n8n workspaces</title></head>
+      <head>
+        <title>Your n8n workspaces</title>
+      </head>
       <body style="font-family: system-ui; max-width: 720px; margin: 40px auto; line-height: 1.5; color: #e5e7eb; background:#020617;">
-        <h1>Your n8n workspaces</h1>
-
+        <h1 style="margin-bottom: 4px;">Your n8n workspaces</h1>
         <p><strong>Email:</strong> {email}</p>
         <p>{count_text}</p>
 
@@ -174,7 +132,7 @@ def workspace(email: str):
         <h3 style="margin-top: 32px;">What to expect</h3>
         <ul>
           <li><strong>First time:</strong> n8n may show a “Set up owner account” screen. Create your account once.</li>
-          <li><strong>After that:</strong> opening from <em>Find my workspace</em> will jump straight into that workspace.</li>
+          <li><strong>Later:</strong> opening from <em>Find my workspace</em> jumps into that workspace.</li>
           <li><strong>When it expires:</strong> the workspace container is stopped, data is wiped, and it disappears from this list.</li>
         </ul>
 
@@ -186,57 +144,3 @@ def workspace(email: str):
     """
 
     return HTMLResponse(html)
-
-
-    ws = data["workspace"]
-    status = ws.get("status", "unknown")
-    expires = ws.get("expires_at", "unknown")
-    subdomain = ws.get("subdomain", "")
-
-    # 🔑 KEY CHANGE:
-    # Always build a secure HTTPS URL from subdomain + base domain.
-    # Ignore any IP:port fqdn in the DB.
-    if subdomain:
-        ws_url = f"https://{subdomain}.{WORKSPACE_BASE_DOMAIN}"
-    else:
-        # fallback to whatever API sent, just in case
-        ws_url = ws.get("fqdn", "#")
-
-    return f"""
-    <html>
-      <head><title>Your n8n Workspace</title></head>
-      <body style="font-family: system-ui; max-width: 720px; margin: 40px auto; line-height: 1.5;">
-        <h1>Your n8n Workspace</h1>
-
-        <p><strong>Email:</strong> {email}</p>
-        <p><strong>Workspace ID:</strong> {subdomain}</p>
-        <p><strong>Status:</strong> {status}</p>
-        <p><strong>Expires at (UTC):</strong> {expires}</p>
-
-        <hr style="margin: 24px 0;" />
-
-        <h2>Open your workspace</h2>
-        <p>
-          <a href="{ws_url}" target="_blank" rel="noopener"
-             style="padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px;">
-            Launch n8n workspace
-          </a>
-        </p>
-        <p style="margin-top: 8px;">
-          If the button doesn't work, you can copy and paste this URL into a new tab:<br>
-          <code>{ws_url}</code>
-        </p>
-
-        <h3 style="margin-top: 32px;">What to expect</h3>
-        <ul>
-          <li><strong>First time:</strong> n8n may show a “Set up owner account” screen. Create your account once.</li>
-          <li><strong>After that:</strong> opening this page and clicking <em>Launch n8n workspace</em> should jump straight into your workflows.</li>
-          <li><strong>When it expires:</strong> the workspace container is stopped and all data is wiped automatically.</li>
-        </ul>
-
-        <p style="margin-top: 32px;">
-          <a href="/">Back to landing</a>
-        </p>
-      </body>
-    </html>
-    """
