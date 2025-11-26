@@ -1,8 +1,9 @@
 import os, time, docker
 from datetime import datetime, timezone
-import psycopg2  # NEW
+import psycopg2
 
 client = docker.from_env()
+
 
 def parse_iso(s: str):
     """Parse ISO8601 expiry into a UTC-aware datetime, or None."""
@@ -15,16 +16,19 @@ def parse_iso(s: str):
     except Exception:
         return None
 
+
 def sub_from_container(name: str) -> str:
     # name like "n8n_u-322e55"
     if name.startswith("n8n_"):
         return name.split("n8n_", 1)[1]
     return name
 
+
 def volume_name_for(sub: str) -> str:
     return f"n8n_{sub}_data"
 
-# ---------- NEW: DB helpers ----------
+
+# ---------- DB helpers ----------
 
 def get_db_conn():
     """
@@ -39,6 +43,7 @@ def get_db_conn():
         port=int(os.getenv("POSTGRES_PORT", "5432")),
     )
 
+
 def delete_workspace_row(sub: str):
     """
     Hard-delete the workspace row for this subdomain.
@@ -51,13 +56,20 @@ def delete_workspace_row(sub: str):
     except Exception as e:
         print(f"[janitor] failed to delete DB row for {sub}: {e}")
 
+
 # ------------------------------------
 
 
 def stop_and_wipe(container):
     name = container.name
     labels = container.labels or {}
-    sub = labels.get("com.xcommand.sub") or sub_from_container(name)
+
+    # Prefer new labels, fall back to old + container name
+    sub = (
+        labels.get("xcommand.subdomain")
+        or labels.get("com.xcommand.sub")
+        or sub_from_container(name)
+    )
     volume = volume_name_for(sub)
 
     try:
@@ -73,7 +85,7 @@ def stop_and_wipe(container):
     except Exception as e:
         print(f"[janitor] wipe failed {volume}: {e}")
 
-    # NEW: delete workspace row in Postgres
+    # delete workspace row in Postgres
     delete_workspace_row(sub)
 
 
@@ -86,12 +98,29 @@ def sweep_once(now_utc: datetime):
     for c in client.containers.list(all=True):
         total += 1
         labels = c.labels or {}
-        sub = labels.get("com.xcommand.sub")
+
+        # Only touch xCommand workspaces
+        workspace_flag = (
+            labels.get("xcommand.workspace")
+            or labels.get("com.xcommand.workspace")
+        )
+        if workspace_flag != "true":
+            continue
+
+        # New subdomain label first, then old
+        sub = labels.get("xcommand.subdomain") or labels.get("com.xcommand.sub")
         if not sub:
             continue
+
         with_sub += 1
 
-        exp = parse_iso(labels.get("com.xcommand.expires_at", ""))
+        # New expiry label first, then old
+        exp_label = (
+            labels.get("xcommand.expires_at")
+            or labels.get("com.xcommand.expires_at")
+            or ""
+        )
+        exp = parse_iso(exp_label)
         if exp and exp <= now_utc:
             expired += 1
             stop_and_wipe(c)
@@ -100,6 +129,7 @@ def sweep_once(now_utc: datetime):
         f"[janitor] {now_utc.isoformat()} scan: "
         f"total={total}, with_sub={with_sub}, expired_cleaned={expired}"
     )
+
 
 if __name__ == "__main__":
     interval = int(os.getenv("JANITOR_INTERVAL_SECONDS", "30"))
