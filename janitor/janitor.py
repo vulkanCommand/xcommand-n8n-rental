@@ -5,13 +5,14 @@ import psycopg2
 client = docker.from_env()
 
 
+# ---------- helpers ----------
+
 def parse_iso(s: str):
     """Parse ISO8601 expiry into a UTC-aware datetime, or None."""
     if not s:
         return None
     s = s.rstrip("Z")  # tolerate trailing Z
     try:
-        # make it explicitly UTC
         return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
     except Exception:
         return None
@@ -32,8 +33,7 @@ def volume_name_for(sub: str) -> str:
 
 def get_db_conn():
     """
-    Create a Postgres connection using the same env vars as your API.
-    Adjust defaults if your DB name/user differ.
+    Create a Postgres connection using the same env vars as the API.
     """
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "postgres"),
@@ -57,19 +57,54 @@ def delete_workspace_row(sub: str):
         print(f"[janitor] failed to delete DB row for {sub}: {e}")
 
 
-# ------------------------------------
+# ---------- label logic ----------
 
+def is_workspace(labels: dict, name: str) -> bool:
+    """
+    Decide if this container belongs to xCommand workspaces.
+    1) Prefer explicit workspace flag
+    2) Fallback to name pattern n8n_u-*
+    """
+    flag = labels.get("xcommand.workspace") or labels.get("com.xcommand.workspace")
+    if flag == "true":
+        return True
+
+    if name.startswith("n8n_u-"):
+        return True
+
+    return False
+
+
+def get_subdomain(labels: dict, name: str) -> str:
+    """
+    Get subdomain from labels, falling back to container name.
+    """
+    return (
+        labels.get("xcommand.subdomain")
+        or labels.get("com.xcommand.sub")
+        or sub_from_container(name)
+    )
+
+
+def get_expiry(labels: dict):
+    """
+    Get expiry datetime from either new or old label keys.
+    """
+    label = (
+        labels.get("xcommand.expires_at")
+        or labels.get("com.xcommand.expires_at")
+        or ""
+    )
+    return parse_iso(label)
+
+
+# ---------- main cleanup ----------
 
 def stop_and_wipe(container):
     name = container.name
     labels = container.labels or {}
 
-    # Prefer new labels, fall back to old + container name
-    sub = (
-        labels.get("xcommand.subdomain")
-        or labels.get("com.xcommand.sub")
-        or sub_from_container(name)
-    )
+    sub = get_subdomain(labels, name)
     volume = volume_name_for(sub)
 
     try:
@@ -94,33 +129,21 @@ def sweep_once(now_utc: datetime):
     with_sub = 0
     expired = 0
 
-    # scan all containers, filter by our label in code
     for c in client.containers.list(all=True):
         total += 1
         labels = c.labels or {}
+        name = c.name
 
-        # Only touch xCommand workspaces
-        workspace_flag = (
-            labels.get("xcommand.workspace")
-            or labels.get("com.xcommand.workspace")
-        )
-        if workspace_flag != "true":
+        # Only touch our workspace containers
+        if not is_workspace(labels, name):
             continue
 
-        # New subdomain label first, then old
-        sub = labels.get("xcommand.subdomain") or labels.get("com.xcommand.sub")
+        sub = get_subdomain(labels, name)
         if not sub:
             continue
-
         with_sub += 1
 
-        # New expiry label first, then old
-        exp_label = (
-            labels.get("xcommand.expires_at")
-            or labels.get("com.xcommand.expires_at")
-            or ""
-        )
-        exp = parse_iso(exp_label)
+        exp = get_expiry(labels)
         if exp and exp <= now_utc:
             expired += 1
             stop_and_wipe(c)
