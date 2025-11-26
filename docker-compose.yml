@@ -159,17 +159,20 @@ services:
     working_dir: /janitor
     command: >
       sh -c "pip install --no-cache-dir python-dateutil docker psycopg2-binary &&
-           echo 'Dependencies installed. Starting janitor...' &&
-           python -u /janitor/janitor.py"
-
+             echo 'Dependencies installed. Starting janitor...' &&
+             python -u /janitor/janitor.py"
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=xcmd
+      - POSTGRES_USER=xcmd
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=5432
     volumes:
       - ./janitor:/janitor:ro
-      - ./api/app:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks: [internal]
+
 
 networks:
   web:
