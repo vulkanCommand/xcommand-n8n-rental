@@ -165,7 +165,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - POSTGRES_HOST=xcommand-n8n-rental-postgres-1
-      - POSTGRES_DB=xcmd
+      - POSTGRES_DB=xcmd_rental
       - POSTGRES_USER=xcmd
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=5432
