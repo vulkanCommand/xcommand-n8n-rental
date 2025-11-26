@@ -396,49 +396,55 @@
     startBtn.textContent = isLoading ? "Looking up workspace…" : "Find my workspace";
   }
 
-  // Fetch ALL workspaces for this email
 async function fetchWorkspaces(email) {
   const url = `${API_BASE}/workspaces/all-by-email/${encodeURIComponent(email)}`;
   const res = await fetch(url);
+
+  // 404 from API = no active workspaces for this email
+  if (res.status === 404) {
+    return [];
+  }
+
   if (!res.ok) {
+    // real error (500, 502, network issues etc.)
     throw new Error(`API error ${res.status}`);
   }
-  return res.json();
+
+  const data = await res.json();
+  if (!data.ok) return [];
+  return data.workspaces || [];
 }
+
 
 
 async function poll(email) {
   try {
-    const data = await fetchWorkspaces(email);
+    const workspaces = await fetchWorkspaces(email);
 
-    // Expecting: { ok: true, workspaces: [...] }
-    if (!data || !data.ok || !Array.isArray(data.workspaces) || data.workspaces.length === 0) {
-      errorText.textContent = "We don't see a workspace yet for this email. If you just paid, give it a few moments.";
+    // nothing for this email
+    if (!workspaces.length) {
+      setStatus("provisioning");
       workspaceBox.style.display = "none";
+      workspaceInfo.textContent = "";
+      workspaceList.innerHTML = "";
+      errorText.textContent = "No workspace found for this email. Make sure you used the same email at checkout.";
       return;
     }
 
-    const workspaces = data.workspaces;
     errorText.textContent = "";
 
-    // If at least one is active, show active status; else show provisioning
     const hasActive = workspaces.some(ws => ws.status === "active");
-    if (hasActive) {
-      setStatus("active");
-    } else {
-      setStatus("provisioning");
-    }
+    setStatus(hasActive ? "active" : "provisioning");
 
     workspaceBox.style.display = "grid";
 
-    // Info text at the top
     workspaceInfo.textContent =
       workspaces.length === 1
         ? "We found 1 workspace for this email."
         : `We found ${workspaces.length} workspaces for this email.`;
 
-    // Render list
     workspaceList.innerHTML = "";
+
     for (const ws of workspaces) {
       const row = document.createElement("div");
       row.className = "workspace-item";
@@ -447,7 +453,8 @@ async function poll(email) {
       main.className = "workspace-item-main";
 
       const title = document.createElement("div");
-      title.textContent = ws.fqdn || ws.subdomain || "Workspace";
+      const fqdn = ws.fqdn || `${ws.subdomain}.xcommand.cloud`;
+      title.textContent = fqdn;
 
       const meta = document.createElement("div");
       meta.className = "workspace-item-meta";
@@ -462,13 +469,12 @@ async function poll(email) {
 
       const link = document.createElement("a");
       link.className = "workspace-item-link";
-      link.href = ws.fqdn.startsWith("http") ? ws.fqdn : `http://${ws.fqdn}`;
+      link.href = fqdn.startsWith("http") ? fqdn : `https://${fqdn}`;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = (ws.status === "active") ? "Open" : "Not ready";
+      link.textContent = ws.status === "active" ? "Open" : "Not ready";
 
-      // For now, keep inactive ones disabled (we’ll make this smarter in Issue 2)
-      if (ws.status !== "active" || !ws.fqdn) {
+      if (ws.status !== "active") {
         link.style.opacity = "0.6";
         link.style.pointerEvents = "none";
       }
@@ -478,11 +484,21 @@ async function poll(email) {
       workspaceList.appendChild(row);
     }
 
+    // optional: stop polling once at least one is active
+    if (hasActive && pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   } catch (err) {
     console.error(err);
+    // real connectivity/API error
+    workspaceBox.style.display = "none";
+    workspaceInfo.textContent = "";
+    workspaceList.innerHTML = "";
     errorText.textContent = "Could not reach the API. Please try again in a moment.";
   }
 }
+
 
 
 
