@@ -1,29 +1,44 @@
 #!/usr/bin/env bash
 set -e
 
-# Always run from repo root
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$REPO_DIR"
+echo "== xcommand-n8n-rental: safe update =="
 
-# Make sure we are on main
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [ "$CURRENT_BRANCH" != "main" ]; then
-  echo "You are on branch '$CURRENT_BRANCH'. This script assumes 'main'."
-  echo "Switch to main or update the script if you want to use another branch."
+# Make sure we're in the repo root
+if [ ! -d ".git" ]; then
+  echo "❌ This does not look like a git repo (no .git directory)."
   exit 1
 fi
 
-# Only care about tracked-file changes, ignore untracked ones like update.sh
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-  echo "❌ Local repo has uncommitted tracked changes."
-  echo "Commit, stash, or discard them before syncing."
+echo
+echo "Current git status:"
+git status
+
+# Block if there are uncommitted changes
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo
+  echo "❌ Local repo has uncommitted changes."
+  echo "I will NOT touch anything automatically."
+  echo
+  echo "Fix this first by doing ONE of these:"
+  echo "  1) Commit your work:"
+  echo "       git add <files>"
+  echo "       git commit -m \"your message\""
+  echo
+  echo "  2) Stash your work temporarily:"
+  echo "       git stash"
+  echo
+  echo "  3) Discard local changes (DANGEROUS):"
+  echo "       git restore <files>"
+  echo "     or git reset --hard HEAD"
+  echo
   exit 1
 fi
 
-echo "✅ Fetching latest changes from origin..."
+echo
+echo "✅ Working tree is clean. Updating from origin/main..."
+
 git fetch origin
+git pull --rebase origin main
 
-echo "✅ Pulling origin/main into local main..."
-git pull origin main
-
-echo "✅ Done. Local repo is now up to date with GitHub."
+echo
+echo "✅ Local main is now up to date with origin/main."

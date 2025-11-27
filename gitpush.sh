@@ -1,45 +1,78 @@
 #!/usr/bin/env bash
-set -e
 
-# Always run from repo root
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$REPO_DIR"
+echo "== xcommand-n8n-rental: safe push =="
 
-# Make sure we are on main
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [ "$CURRENT_BRANCH" != "main" ]; then
-  echo "You are on branch '$CURRENT_BRANCH'. This script assumes 'main'."
-  echo "Switch to main or update the script if you want to use another branch."
+# Make sure we're in a git repo
+if [ ! -d ".git" ]; then
+  echo "❌ This does not look like a git repo (no .git directory)."
   exit 1
 fi
 
+echo
 echo "Current git status:"
 git status
 
-read -p "Stage and push ALL tracked changes to origin/main? (y/n): " ANSWER
-if [[ "$ANSWER" != "y" && "$ANSWER" != "Y" ]]; then
-  echo "Aborted."
-  exit 0
+# Check for any local changes (staged or unstaged)
+CHANGES=$(git status --porcelain)
+
+if [ -n "$CHANGES" ]; then
+  echo
+  echo "You have local changes."
+  echo "I can stage and commit ALL tracked changes for you."
+  read -r -p "Stage and commit all tracked changes? (y/n): " ANSWER
+
+  if [ "$ANSWER" != "y" ] && [ "$ANSWER" != "Y" ]; then
+    echo "❌ Aborting. Nothing was pushed."
+    exit 1
+  fi
+
+  echo
+  echo "Staging all tracked changes..."
+  git add -A
+
+  echo
+  read -r -p "Enter commit message: " COMMIT_MSG
+
+  if [ -z "$COMMIT_MSG" ]; then
+    echo "❌ Empty commit message is not allowed. Aborting."
+    exit 1
+  fi
+
+  echo "Committing with message: $COMMIT_MSG"
+  git commit -m "$COMMIT_MSG"
+else
+  echo
+  echo "✅ No local changes to commit."
 fi
 
-echo "Staging all tracked changes..."
-git add -A
-
-# Check if anything is actually staged
-if [ -z "$(git diff --cached --name-only)" ]; then
-  echo "No changes staged. Nothing to commit."
-  exit 0
+echo
+echo "Fetching and rebasing on top of origin/main..."
+if ! git pull --rebase origin main; then
+  echo
+  echo "❌ Rebase failed due to conflicts."
+  echo "Fix conflicts, then run:"
+  echo "  git status"
+  echo "  # edit conflicted files"
+  echo "  git add <fixed-files>"
+  echo "  git rebase --continue"
+  echo "Then run this script again to push."
+  exit 1
 fi
 
-read -p "Enter commit message: " COMMIT_MSG
-if [ -z "$COMMIT_MSG" ]; then
-  COMMIT_MSG="Update from local"
-fi
-
-echo "Committing with message: $COMMIT_MSG"
-git commit -m "$COMMIT_MSG"
-
+echo
 echo "Pushing to origin/main..."
-git push origin main
+if ! git push origin main; then
+  echo
+  echo "❌ Push failed."
+  echo "Most common reasons:"
+  echo "  - Someone pushed new commits after your rebase."
+  echo "  - Remote branch was changed in a way that needs manual handling."
+  echo
+  echo "Try:"
+  echo "  git pull --rebase origin main"
+  echo "Then run this script again."
+  exit 1
+fi
 
-echo "✅ Done. Local changes are now in GitHub (origin/main)."
+echo
+echo "✅ Successfully pushed to origin/main."
