@@ -1,6 +1,8 @@
 import os, time, docker
 from datetime import datetime, timezone
 import psycopg2
+import requests
+
 
 client = docker.from_env()
 
@@ -55,6 +57,82 @@ def delete_workspace_row(sub: str):
         print(f"[janitor] deleted DB row for subdomain {sub}")
     except Exception as e:
         print(f"[janitor] failed to delete DB row for {sub}: {e}")
+
+def get_workspace_info(sub: str):
+    """
+    Look up this workspace in Postgres by subdomain.
+    Returns {"email": str, "backup_sent_at": datetime|None} or None.
+    """
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            # TODO: if your column is not 'user_email', change it here
+            cur.execute(
+                "SELECT user_email, backup_sent_at FROM workspaces WHERE subdomain = %s",
+                (sub,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            email, backup_sent_at = row
+            return {"email": email, "backup_sent_at": backup_sent_at}
+    except Exception as e:
+        print(f"[janitor] failed to fetch workspace info for {sub}: {e}")
+        return None
+
+
+def mark_backup_sent(sub: str):
+    """
+    Mark backup_sent_at = now() for this workspace.
+    """
+    now = datetime.now(timezone.utc)
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE workspaces SET backup_sent_at = %s WHERE subdomain = %s",
+                (now, sub),
+            )
+        print(f"[janitor] marked backup_sent_at for {sub} at {now.isoformat()}")
+    except Exception as e:
+        print(f"[janitor] failed to update backup_sent_at for {sub}: {e}")
+
+
+def trigger_backup(sub: str, email: str, exp: datetime) -> bool:
+    """
+    Call the n8n backup webhook for this workspace.
+    Returns True on success, False on failure.
+    """
+    # For now we use a single URL in env for testing.
+    # Later you can switch to per-subdomain URL if needed.
+    url = os.getenv("BACKUP_WEBHOOK_URL")
+    if not url:
+        print("[janitor] BACKUP_WEBHOOK_URL not set; skipping backup")
+        return False
+
+    payload = {
+        "workspace_subdomain": sub,
+        "user_email": email,
+        "expires_at": exp.isoformat().replace("+00:00", "Z"),
+    }
+
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        try:
+            data = resp.json()
+        except Exception:
+            data = None
+
+        if resp.status_code == 200 and isinstance(data, dict) and data.get("ok") is True:
+            print(f"[janitor] backup webhook OK for {sub}")
+            return True
+
+        print(
+            f"[janitor] backup webhook failed for {sub}: "
+            f"status={resp.status_code}, body={data}"
+        )
+    except Exception as e:
+        print(f"[janitor] backup webhook error for {sub}: {e}")
+
+    return False
 
 
 # ---------- label logic ----------
@@ -144,9 +222,36 @@ def sweep_once(now_utc: datetime):
         with_sub += 1
 
         exp = get_expiry(labels)
-        if exp and exp <= now_utc:
+        if not exp:
+            # no expiry set → skip
+            continue
+
+        # how many minutes until expiry
+        delta_min = (exp - now_utc).total_seconds() / 60.0
+
+        # EXPIRED: delete as before
+        if delta_min <= 0:
             expired += 1
             stop_and_wipe(c)
+            continue
+
+        # PRE-EXPIRY WINDOW: 0 < delta_min <= 10
+        if delta_min <= 10:
+            info = get_workspace_info(sub)
+            if not info:
+                print(f"[janitor] no DB row for subdomain {sub}, skipping backup")
+            else:
+                email = info["email"]
+                backup_sent_at = info["backup_sent_at"]
+
+                if backup_sent_at is None:
+                    print(
+                        f"[janitor] triggering backup for {sub}, "
+                        f"{delta_min:.1f} minutes left"
+                    )
+                    ok = trigger_backup(sub, email, exp)
+                    if ok:
+                        mark_backup_sent(sub)
 
     print(
         f"[janitor] {now_utc.isoformat()} scan: "
