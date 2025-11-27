@@ -178,6 +178,7 @@ We keep communication direct, simple, and fast.
 
 # **End of Onboarding**
 
-Welcome to the team — build responsibly and push confidently.
+Welcome to the team - build responsibly and push confidently.
 
 Just tell me what you want next.
+
