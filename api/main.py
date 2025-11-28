@@ -214,7 +214,7 @@ def get_workspace_by_email(email: EmailStr):
 @app.get("/workspaces/all-by-email/{email}")
 def get_workspaces_by_email(email: EmailStr):
     """
-    Return all non-deleted workspaces for this email, newest first.
+    Return all non-deleted, non-expired workspaces for this email, newest first.
     """
     rows = fetch_all(
         """
@@ -232,6 +232,7 @@ def get_workspaces_by_email(email: EmailStr):
         from workspaces
         where email = %s
           and status <> 'deleted'
+          and expires_at > now()
         order by created_at desc
         """,
         (email,),
