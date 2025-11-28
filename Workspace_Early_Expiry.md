@@ -52,10 +52,3 @@ Janitor will now:
 
 Exactly 10 minutes and 30 seconds from now.
 
-If you want, I can also teach you how to:
-
-* force janitor to scan every 5 seconds instead of 30
-* or manually trigger janitor for testing
-* or create a quick `/force-expire` API endpoint for development
-
-Just tell me.
