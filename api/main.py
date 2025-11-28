@@ -232,7 +232,8 @@ def get_workspaces_by_email(email: EmailStr):
         from workspaces
         where email = %s
           and status <> 'deleted'
-          and expires_at > now()
+          and expires_at > now() at time zone 'utc'
+
         order by created_at desc
         """,
         (email,),
@@ -417,6 +418,22 @@ async def stripe_webhook(request: Request):
 
 
 # --- AI Support Chat ----------------------------------------------------------
+
+
+@app.get("/metrics/active-workspaces")
+def metric_active_workspaces():
+    """
+    Return the number of non-expired, non-deleted workspaces.
+    Used by Grafana for accurate active workspace counts.
+    """
+    row = fetch_one("""
+        SELECT COUNT(*) AS count
+        FROM workspaces
+        WHERE status <> 'deleted'
+          AND expires_at > NOW() AT TIME ZONE 'utc'
+    """)
+    return {"active_workspaces": row["count"]}
+
 
 
 @app.post("/support/chat")
