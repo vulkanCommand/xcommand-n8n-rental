@@ -1,3 +1,26 @@
+Yeah, that `UPDATE 0` tells us exactly what happened:
+`u-abc123` doesn’t exist in your table. I only used it as a dummy example — your real workspace subdomain will be different.
+
+Let’s grab the real one and then set the 10m 30s expiry.
+
+---
+
+### Step 1: See your latest workspaces (do this now inside psql)
+
+You’re already at the `xcmd_rental=#` prompt, so run:
+
+```sql
+SELECT id, email, subdomain, expires_at
+FROM workspaces
+ORDER BY created_at DESC
+LIMIT 5;
+```
+
+Look at that output and pick the **subdomain** of the workspace you want to use for your 10:30 test, e.g. something like `u-6a1758` or `u-36a481`.
+
+Reply to me with that subdomain, or if you already know it, tell me and I’ll give you the exact `UPDATE` line for that one.
+
+
 Got you — and this is easy because your whole system is now clean and predictable.
 
 You essentially have two ways to create a **10-minute 30-second workspace**:
