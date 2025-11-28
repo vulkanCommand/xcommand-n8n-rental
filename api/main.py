@@ -65,6 +65,13 @@ class CheckoutRequest(BaseModel):
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
 
+class BackupRequest(BaseModel):
+    workspace_id: int
+    email: EmailStr
+    container_name: str
+    volume_name: str
+    expires_at: datetime  # ISO string from n8n will be parsed automatically
+
 def extract_email_from_messages(messages):
     for item in reversed(messages):  # check newest first
         match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", item.content)
@@ -306,6 +313,50 @@ def wipe_workspace(sub: str = Path(..., pattern=r"^u-[0-9a-f]{6}$")):
     wiped = remove_volume(volume_name)
     execute("update workspaces set status='deleted' where subdomain=%s", (sub,))
     return {"ok": True, "wiped": wiped}
+
+# --- Backup endpoint for n8n --------------------------------------------------
+
+@app.post("/workspaces/backup")
+def backup_workspace(req: BackupRequest):
+    """
+    Endpoint for n8n to trigger a 'backup-before-expiry' action.
+    """
+    # 1) Check that the workspace exists
+    rows = fetch_all(
+        """
+        select
+          id,
+          email,
+          container_name,
+          volume_name,
+          status,
+          export_notice_sent
+        from workspaces
+        where id = %s
+        """,
+        (req.workspace_id,),
+    )
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="workspace not found")
+
+    ws = rows[0]
+
+    if ws["email"] != req.email:
+        raise HTTPException(status_code=400, detail="email does not match workspace record")
+
+    # 2) TODO: put your real backup logic here
+    # For now we just log so you can see it in container logs.
+    print(
+        f"[backup] Request received for workspace_id={req.workspace_id}, "
+        f"email={req.email}, container={req.container_name}, volume={req.volume_name}, "
+        f"expires_at={req.expires_at}"
+    )
+
+    # Do NOT update export_notice_sent here.
+    # Your n8n step 6 already sets export_notice_sent = true.
+
+    return {"ok": True, "workspace_id": req.workspace_id}
 
 
 # --- Stripe checkout + webhook -----------------------------------------------
