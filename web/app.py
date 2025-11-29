@@ -83,6 +83,8 @@ def workspace(email: str):
     Look up ALL active workspaces for this email.
     This is what the 'Find my workspace' button should use.
     """
+    email = email.strip().lower()
+
     encoded_email = urllib.parse.quote(email, safe="")
     url = f"{API_BASE}/workspaces/all-by-email/{encoded_email}"
 
