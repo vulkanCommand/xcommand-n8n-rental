@@ -116,7 +116,7 @@
 
     main{
       flex:1;
-      padding:20px;
+      padding:26px 18px 30px;
       display:flex;
       justify-content:center;
     }
@@ -126,7 +126,7 @@
       max-width:1180px;
       display:flex;
       flex-direction:column;
-      gap:18px;
+      gap:22px;
     }
 
     .title-row{
@@ -138,12 +138,12 @@
     }
 
     .title-main{
-      max-width:560px;
+      max-width:620px;
     }
 
     .title-main h1{
-      margin:0 0 6px 0;
-      font-size:clamp(1.9rem,2.5vw,2.4rem);
+      margin:0 0 8px 0;
+      font-size:clamp(2rem,2.6vw,2.5rem);
       background:linear-gradient(120deg,var(--accent),var(--accent-2));
       -webkit-background-clip:text;
       background-clip:text;
@@ -154,6 +154,7 @@
       margin:0;
       color:var(--muted);
       font-size:.95rem;
+      line-height:1.5;
     }
 
     .status-pill{
@@ -178,16 +179,25 @@
       box-shadow:0 0 10px rgba(34,197,94,0.9);
     }
 
+    /* Layout: stack on mobile, side-by-side on large screens */
     .grid{
-      display:grid;
-      grid-template-columns:minmax(0,1.05fr) minmax(0,1.2fr);
-      gap:18px;
-      align-items:stretch;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
     }
 
-    @media (max-width:880px){
+    @media (min-width: 1024px){
       .grid{
-        grid-template-columns:minmax(0,1fr);
+        flex-direction:row;
+        align-items:flex-start;
+      }
+
+      .panel--chat{
+        flex:3;
+      }
+
+      .panel--faq{
+        flex:2;
       }
     }
 
@@ -196,7 +206,7 @@
       background:var(--glass);
       border-radius:18px;
       border:1px solid rgba(148,163,255,0.45);
-      padding:16px 16px 18px;
+      padding:18px 18px 20px;
       box-shadow:
         0 0 0 1px rgba(15,23,42,0.95),
         0 20px 55px rgba(15,23,42,0.9);
@@ -211,36 +221,51 @@
       background:
         radial-gradient(circle at 0% 0%,rgba(124,240,255,0.10),transparent 55%),
         radial-gradient(circle at 100% 10%,rgba(160,124,255,0.14),transparent 60%);
-      opacity:.85;
+      opacity:.75;
       pointer-events:none;
       z-index:-1;
     }
 
     .panel h2{
-      margin:0 0 8px 0;
-      font-size:1.1rem;
+      margin:2px 0 8px 0;
+      font-size:1.05rem;
     }
 
     .panel p{
-      margin:0 0 10px 0;
+      margin:0 0 12px 0;
       font-size:.9rem;
       color:var(--muted);
+    }
+
+    .step-label{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 9px;
+      border-radius:999px;
+      font-size:.7rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#a5b4fc;
+      background:rgba(15,23,42,0.9);
+      border:1px solid rgba(129,140,248,0.6);
+      margin-bottom:6px;
     }
 
     .pill-row{
       display:flex;
       flex-wrap:wrap;
-      gap:6px;
-      margin-bottom:10px;
+      gap:8px;
+      margin-bottom:12px;
     }
 
     .pill{
-      font-size:.76rem;
-      padding:4px 9px;
+      font-size:.78rem;
+      padding:5px 10px;
       border-radius:999px;
       border:1px solid rgba(148,163,255,0.55);
       color:#c7d2fe;
-      background:rgba(15,23,42,0.95);
+      background:rgba(15,23,42,0.97);
       white-space:nowrap;
       cursor:pointer;
     }
@@ -249,45 +274,83 @@
       border-color:rgba(124,240,255,0.8);
     }
 
+    /* FAQ collapsible */
     .faq-list{
       list-style:none;
-      margin:6px 0 0 0;
+      margin:4px 0 0 0;
       padding:0;
       font-size:.86rem;
     }
 
-    .faq-list li{
-      padding:7px 0;
-      border-bottom:1px dashed rgba(148,163,255,0.35);
+    .faq-item{
+      border-bottom:1px dashed rgba(148,163,255,0.28);
+      padding:2px 0 4px;
     }
 
-    .faq-list li:last-child{
+    .faq-item:last-child{
       border-bottom:none;
+    }
+
+    .faq-toggle{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 0;
+      border:0;
+      background:transparent;
+      color:inherit;
+      cursor:pointer;
     }
 
     .faq-q{
       font-weight:500;
       color:var(--fg);
-      margin-bottom:2px;
+      text-align:left;
+      font-size:.88rem;
     }
 
-    .faq-a{
+    .faq-icon{
+      font-size:.9rem;
+      opacity:.8;
+      flex-shrink:0;
+      transition:transform 0.16s ease;
+    }
+
+    .faq-item[data-open="true"] .faq-icon{
+      transform:rotate(90deg);
+    }
+
+    .faq-content{
+      max-height:0;
+      overflow:hidden;
+      transition:max-height 0.18s ease;
+    }
+
+    .faq-inner{
+      padding:0 0 10px 0;
       color:var(--muted);
       font-size:.84rem;
+      line-height:1.5;
+    }
+
+    .faq-item[data-open="true"] .faq-content{
+      max-height:200px;
     }
 
     /* Chat side */
     .chat-wrap{
       display:flex;
       flex-direction:column;
-      height:100%;
       min-height:260px;
+      gap:8px;
     }
 
     .chat-window{
       flex:1;
-      min-height:200px;
-      max-height:420px;
+      min-height:220px;
+      max-height:460px;
       border-radius:12px;
       border:1px solid rgba(148,163,255,0.6);
       background:rgba(6,11,30,0.98);
@@ -301,10 +364,11 @@
       font-size:.85rem;
       text-align:center;
       margin-top:40px;
+      line-height:1.5;
     }
 
     .chat-msg{
-      margin:6px 0;
+      margin:7px 0;
       display:flex;
       opacity:0;
       transform:translateY(6px);
@@ -320,7 +384,7 @@
     }
 
     .bubble{
-      padding:7px 10px;
+      padding:8px 11px;
       border-radius:12px;
       max-width:78%;
       line-height:1.4;
@@ -344,7 +408,7 @@
     .chat-input-row{
       display:flex;
       gap:8px;
-      margin-top:10px;
+      margin-top:8px;
     }
 
     .chat-input-row textarea{
@@ -386,10 +450,17 @@
     }
 
     .helper{
-      margin-top:6px;
+      margin-top:4px;
       font-size:.75rem;
       color:var(--muted);
       opacity:.9;
+    }
+
+    .helper--footer{
+      margin-top:10px;
+      font-size:.78rem;
+      color:var(--muted);
+      text-align:left;
     }
 
     @keyframes fadeIn {
@@ -418,7 +489,6 @@
         <a href="https://xcommand.cloud/pay.html">Plans</a>
         <a href="https://app.xcommand.cloud/support" class="active">Support</a>
       </nav>
-
     </header>
 
     <main>
@@ -427,8 +497,7 @@
           <div class="title-main">
             <h1>Need help with your workspace?</h1>
             <p>
-              Ask anything about payments, workspace access, or how to build flows.
-              The AI assistant uses the xCommand Cloud knowledge base to answer.
+              Start with the AI support bot. If your case needs a human, you’ll see exactly what to email.
             </p>
           </div>
 
@@ -439,57 +508,13 @@
         </div>
 
         <div class="grid">
-          <!-- Left side: quick help -->
-          <section class="panel">
-            <h2>Quick help</h2>
-            <p>Some common questions people ask before contacting support.</p>
-
-            <div class="pill-row">
-              <span class="pill">Workspace access</span>
-              <span class="pill">Plan expiry</span>
-              <span class="pill">Stripe payments</span>
-              <span class="pill">Exporting workflows</span>
-            </div>
-
-            <ul class="faq-list">
-              <li>
-                <div class="faq-q">I paid but I can’t see my workspace link.</div>
-                <div class="faq-a">
-                  Search your email for “xCommand workspace ready”.
-                  If nothing shows, ask the AI bot here and include the email you used at checkout.
-                </div>
-              </li>
-              <li>
-                <div class="faq-q">What happens when my plan expires?</div>
-                <div class="faq-a">
-                  The container is stopped and wiped. Export your workflows as JSON before expiry.
-                  The AI assistant can walk you through how to export and re-import.
-                </div>
-              </li>
-              <li>
-                <div class="faq-q">Can I extend from 1-day to 5-day?</div>
-                <div class="faq-a">
-                  Yes. You can purchase a new plan with the same email.
-                  The AI can explain how expiry times are calculated for new purchases.
-                </div>
-              </li>
-              <li>
-                <div class="faq-q">Is there human support?</div>
-                <div class="faq-a">
-                  During beta, this AI bot is the main entry point.
-                  For billing-only issues, it will tell you exactly what to email and where.
-                </div>
-              </li>
-            </ul>
-          </section>
-
-          <!-- Right side: chat -->
-          <section class="panel chat-wrap">
-            <h2>Chat with the AI assistant</h2>
-            <p>Describe your issue in one or two sentences. Include your email if it’s about a specific purchase.</p>
+          <!-- Chat first (primary) -->
+          <section class="panel chat-wrap panel--chat">
+            <h2>Describe what’s happening</h2>
+            <p>Use one or two sentences, and include your email if it’s about a specific purchase.</p>
 
             <!-- Quick question chips -->
-            <div class="pill-row" style="margin-bottom:8px;">
+            <div class="pill-row">
               <button type="button" class="pill" onclick="sendPresetQuestion('I paid but my workspace link is not opening. Can you help me check what is wrong?')">
                 Workspace link not opening
               </button>
@@ -517,15 +542,84 @@
             </div>
 
             <div class="helper">
-              
+              Tip: type the same email you used at checkout so the assistant can find your workspace.
             </div>
           </section>
-        <div class="helper">
-  If the AI says your case needs a human, email
-  <strong>xcommand.cloud@gmail.com</strong> with your checkout email,
-  plan (24-hour / 5-Day), purchase time, and workspace URL.
-</div>
 
+          <!-- Quick help -->
+          <section class="panel panel--faq">
+            <h2>Common questions</h2>
+            <p>Open the ones that match your situation.</p>
+
+            <div class="pill-row">
+              <span class="pill">Workspace access</span>
+              <span class="pill">Plan expiry</span>
+              <span class="pill">Stripe payments</span>
+              <span class="pill">Exporting workflows</span>
+            </div>
+
+            <ul class="faq-list">
+              <li class="faq-item" data-open="false">
+                <button class="faq-toggle" type="button">
+                  <span class="faq-q">I paid but I can’t see my workspace link.</span>
+                  <span class="faq-icon">›</span>
+                </button>
+                <div class="faq-content">
+                  <div class="faq-inner">
+                    Search your email for “xCommand workspace ready”.
+                    If nothing shows, ask the AI bot here and include the email you used at checkout.
+                  </div>
+                </div>
+              </li>
+
+              <li class="faq-item" data-open="false">
+                <button class="faq-toggle" type="button">
+                  <span class="faq-q">What happens when my plan expires?</span>
+                  <span class="faq-icon">›</span>
+                </button>
+                <div class="faq-content">
+                  <div class="faq-inner">
+                    The container is stopped and wiped. Export your workflows as JSON before expiry.
+                    The AI assistant can walk you through how to export and re-import.
+                  </div>
+                </div>
+              </li>
+
+              <li class="faq-item" data-open="false">
+                <button class="faq-toggle" type="button">
+                  <span class="faq-q">Can I extend from 1-day to 5-day?</span>
+                  <span class="faq-icon">›</span>
+                </button>
+                <div class="faq-content">
+                  <div class="faq-inner">
+                    Yes. You can purchase a new plan with the same email.
+                    The AI can explain how expiry times are calculated for new purchases.
+                  </div>
+                </div>
+              </li>
+
+              <li class="faq-item" data-open="false">
+                <button class="faq-toggle" type="button">
+                  <span class="faq-q">Is there human support?</span>
+                  <span class="faq-icon">›</span>
+                </button>
+                <div class="faq-content">
+                  <div class="faq-inner">
+                    During beta, this AI bot is the main entry point.
+                    For billing-only issues, it will tell you exactly what to email and where.
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="helper--footer">
+          If the AI says your case needs a human, email
+          <strong>xcommand.cloud@gmail.com</strong> with your checkout email,
+          plan (24-hour / 5-Day), purchase time, and workspace URL.
+        </div>
+      </div>
     </main>
   </div>
 
@@ -689,6 +783,20 @@
       if (msgBox) msgBox.focus();
     }
 
+    // FAQ accordion
+    document.addEventListener("DOMContentLoaded", () => {
+      initChat();
+
+      const faqItems = document.querySelectorAll(".faq-item");
+      faqItems.forEach(item => {
+        const btn = item.querySelector(".faq-toggle");
+        btn.addEventListener("click", () => {
+          const isOpen = item.getAttribute("data-open") === "true";
+          item.setAttribute("data-open", isOpen ? "false" : "true");
+        });
+      });
+    });
+
     sendBtn.addEventListener("click", sendMsg);
     msgBox.addEventListener("input", autoResizeTextbox);
     msgBox.addEventListener("keydown", (e) => {
@@ -697,8 +805,6 @@
         sendMsg();
       }
     });
-
-    document.addEventListener("DOMContentLoaded", initChat);
   </script>
 </body>
 </html>
