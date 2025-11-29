@@ -26,10 +26,17 @@ ALLOWED_ORIGINS = [
     "https://app.xcommand.cloud",    # app frontend
 ]
 
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "https://app.xcommand.cloud",
+    "https://xcommand.cloud",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,  # TODO: tighten this when you lock in frontend domains
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
