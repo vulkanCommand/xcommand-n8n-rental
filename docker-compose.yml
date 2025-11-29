@@ -113,15 +113,15 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL}
       DOCKER_HOST: ${DOCKER_HOST}
-      N8N_ROOT_DOMAIN: ${N8N_ROOT_DOMAIN}  # e.g. xcommand.cloud (for u-xxxx.xcommand.cloud)
+      N8N_ROOT_DOMAIN: ${N8N_ROOT_DOMAIN}      # e.g. xcommand.cloud (for u-xxx.xcommand.cloud)
       ENCRYPTION_KEY: "local-dev-encryption-key-change-me"
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       FROM_EMAIL: ${FROM_EMAIL}
-      BASE_DOMAIN: xcommand.cloud
-      WORKSPACE_BASE_DOMAIN: xcommand.cloud
+      BASE_DOMAIN: ${BASE_DOMAIN}              # <- USE .env, same as web (app.xcommand.cloud)
+      WORKSPACE_BASE_DOMAIN: ${N8N_ROOT_DOMAIN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
