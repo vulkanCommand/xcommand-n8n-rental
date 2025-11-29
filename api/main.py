@@ -21,9 +21,14 @@ app = FastAPI()
 
 # --- CORS ---------------------------------------------------------------------
 
+ALLOWED_ORIGINS = [
+    "https://xcommand.cloud",        # landing + pay.html
+    "https://app.xcommand.cloud",    # app frontend
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: tighten this when you lock in frontend domains
+    allow_origins=ALLOWED_ORIGINS,  # TODO: tighten this when you lock in frontend domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
