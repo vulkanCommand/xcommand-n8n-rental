@@ -17,29 +17,21 @@ from openai_client import chat_with_openai
 from provisioner import start_n8n_local, stop_container, remove_volume
 
 
-app = FastAPI()
-
-# --- CORS ---------------------------------------------------------------------
-
-ALLOWED_ORIGINS = [
-    "https://xcommand.cloud",        # landing + pay.html
-    "https://app.xcommand.cloud",    # app frontend
-]
-
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = [
-    "https://app.xcommand.cloud",
-    "https://xcommand.cloud",
-]
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,
+    allow_origins=[
+        "https://xcommand.cloud",      # landing + pay.html
+        "https://app.xcommand.cloud",  # app frontend (ready.html, support, etc.)
+    ],
+    allow_credentials=True,           # this is allowed because we are not using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # --- Knowledge base for the support bot --------------------------------------
 
@@ -223,7 +215,7 @@ def get_workspace_by_email(email: EmailStr):
         order by created_at desc
         limit 1
         """,
-        (email,),
+        (normalized_email,),
     )
 
     if not rows:
@@ -259,7 +251,7 @@ def get_workspaces_by_email(email: EmailStr):
 
         order by created_at desc
         """,
-        (email,),
+        (normalized_email,),
     )
 
     if not rows:
