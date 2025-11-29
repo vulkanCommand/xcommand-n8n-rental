@@ -60,7 +60,6 @@ services:
     networks:
       - internal
 
-
   postgres:
     image: postgres:15
     environment:
@@ -77,7 +76,7 @@ services:
   web:
     build: ./web
     environment:
-      BASE_DOMAIN: ${BASE_DOMAIN}          # e.g. app.xcommand.cloud (we'll set this in .env)
+      BASE_DOMAIN: ${BASE_DOMAIN}          # e.g. app.xcommand.cloud (from .env)
       STRIPE_SECRET: ${STRIPE_SECRET}
       PRICE_1D: ${PRICE_1D}
       PRICE_5D: ${PRICE_5D}
@@ -96,6 +95,7 @@ services:
       - traefik.http.routers.xcmd-web.entrypoints=websecure
       - traefik.http.routers.xcmd-web.tls.certresolver=le
       - traefik.http.services.xcmd-web.loadbalancer.server.port=8000
+      - traefik.docker.network=n8n_web          # <<< added
     networks: [web, internal]
     restart: unless-stopped
 
@@ -120,8 +120,8 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       FROM_EMAIL: ${FROM_EMAIL}
-      BASE_DOMAIN: ${BASE_DOMAIN}                # ✅ app.xcommand.cloud from .env
-      WORKSPACE_BASE_DOMAIN: ${N8N_ROOT_DOMAIN}  # ✅ xcommand.cloud
+      BASE_DOMAIN: ${BASE_DOMAIN}                # app.xcommand.cloud
+      WORKSPACE_BASE_DOMAIN: ${N8N_ROOT_DOMAIN}  # xcommand.cloud
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
@@ -130,6 +130,7 @@ services:
       - traefik.http.routers.xcmd-api.entrypoints=websecure
       - traefik.http.routers.xcmd-api.tls.certresolver=le
       - traefik.http.services.xcmd-api.loadbalancer.server.port=8001
+      - traefik.docker.network=n8n_web          # <<< added (critical for 502)
     networks: [web, internal]
     restart: unless-stopped
 
@@ -177,12 +178,10 @@ services:
     networks:
       - default
 
-
-
 networks:
   web:
     external: true
-    name: n8n_web      # <-- attaches to your existing Traefik network
+    name: n8n_web      # Traefik + n8n share this
   internal:
 
 volumes:
