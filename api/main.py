@@ -94,6 +94,8 @@ def provision_core(email: str, plan: str):
     - Starts the n8n container with an expiry label
     - Marks workspace active and stores its public URL
     """
+    email = email.strip().lower()
+
     if plan not in ("1d", "5d"):
         raise ValueError("plan must be '1d' or '5d'")
 
@@ -199,6 +201,7 @@ def get_workspace_by_email(email: EmailStr):
     """
     Return the most recent non-deleted workspace for this email.
     """
+    normalized_email = str(email).strip().lower()
     rows = fetch_all(
         """
         select *
@@ -223,6 +226,7 @@ def get_workspaces_by_email(email: EmailStr):
     """
     Return all non-deleted, non-expired workspaces for this email, newest first.
     """
+    normalized_email = str(email).strip().lower()
     rows = fetch_all(
         """
         select
@@ -454,6 +458,7 @@ async def stripe_webhook(request: Request):
 
     if not email:
         raise HTTPException(status_code=400, detail="Missing email in event")
+    email = email.strip().lower()
 
     # Basic plan validation
     if plan not in ("1d", "5d"):
@@ -558,6 +563,7 @@ async def support_chat(payload: ChatRequest):
     # ------------------- 4) WORKSPACE LOOKUP ----------------------------------
     # Helper function to query DB
     def lookup_latest_workspace(email: str):
+        email = email.strip().lower()
         try:
             rows = fetch_all(
                 """
