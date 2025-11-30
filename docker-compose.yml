@@ -68,8 +68,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pg_data:/var/lib/postgresql/data
-    #ports:
-    #  - "5432:5432"
     networks:
       - internal
       - db
@@ -183,17 +181,16 @@ services:
       - default
 
 networks:
-  internal:
-    name: xcommand-n8n-rental_internal
-    external: true
-
   web:
-    name: n8n_web
     external: true
+    name: n8n_web
+
+  internal:
 
   db:
-    name: xcmd_db_net
     external: true
+    name: xcmd_db_net
+
 
 volumes:
   pg_data:
