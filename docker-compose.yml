@@ -70,7 +70,9 @@ services:
       - pg_data:/var/lib/postgresql/data
     #ports:
     #  - "5432:5432"
-    networks: [internal]
+    networks:
+      - internal
+      - db
     restart: unless-stopped
 
   web:
@@ -181,10 +183,17 @@ services:
       - default
 
 networks:
-  web:
-    external: true
-    name: n8n_web      # Traefik + n8n share this
   internal:
+    name: xcommand-n8n-rental_internal
+    external: true
+
+  web:
+    name: n8n_web
+    external: true
+
+  db:
+    name: xcmd_db_net
+    external: true
 
 volumes:
   pg_data:

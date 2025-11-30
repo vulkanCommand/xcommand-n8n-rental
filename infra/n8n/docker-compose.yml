@@ -66,7 +66,8 @@ services:
       N8N_PROTOCOL: https
       WEBHOOK_URL: https://n8n.xcommand.cloud
     networks:
-      web: {}
+      - web
+      - db
     labels:
       - traefik.enable=true
       - traefik.docker.network=n8n_web
@@ -79,5 +80,9 @@ services:
 
 networks:
   web:
-    name: n8n_web
     external: true
+    name: n8n_web
+
+  db:
+    external: true
+    name: xcmd_db_net
