@@ -91,6 +91,7 @@ services:
     depends_on: [postgres]
     labels:
       - traefik.enable=true
+      - traefik.docker.network=n8n_web
       - traefik.http.routers.xcmd-web.rule=Host(`${BASE_DOMAIN}`)
       - traefik.http.routers.xcmd-web.entrypoints=websecure
       - traefik.http.routers.xcmd-web.tls.certresolver=le
@@ -126,6 +127,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
       - traefik.enable=true
+      - traefik.docker.network=n8n_web
       - traefik.http.routers.xcmd-api.rule=Host(`api.${BASE_DOMAIN}`)
       - traefik.http.routers.xcmd-api.entrypoints=websecure
       - traefik.http.routers.xcmd-api.tls.certresolver=le
