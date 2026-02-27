@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xCommand Cloud — Support</title>
+<meta name="description" content="Get help with your xCommand workspace. AI-powered support with FAQ.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: hsl(220, 20%, 4%);
+    --bg-card: hsl(220, 18%, 7%);
+    --fg: hsl(0, 0%, 96%);
+    --muted: hsl(220, 10%, 55%);
+    --border: hsl(220, 14%, 14%);
+    --primary: hsl(180, 70%, 55%);
+    --primary-fg: hsl(220, 20%, 4%);
+    --secondary: hsl(220, 15%, 12%);
+    --surface: hsl(220, 16%, 9%);
+    --success: hsl(150, 80%, 55%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: hsla(220, 20%, 4%, 0.95);
+    backdrop-filter: blur(16px);
+  }
+
+  .logo {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .logo span { color: var(--primary); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-links a {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--fg); border-color: hsla(180, 70%, 55%, 0.3); }
+  .nav-links a.active { color: var(--primary); border-color: var(--primary); }
+
+  /* Main layout */
+  main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1.5rem 3rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 980px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .title-main { max-width: 620px; }
+
+  .title-main h1 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary), hsl(200, 80%, 60%), var(--primary));
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .title-main p {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: hsla(150, 80%, 55%, 0.08);
+    border: 1px solid hsla(150, 80%, 55%, 0.4);
+    color: var(--success);
+    white-space: nowrap;
+    height: max-content;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  /* Grid layout */
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .grid { flex-direction: row; align-items: flex-start; }
+    .panel--chat { flex: 3; }
+    .panel--faq { flex: 2; }
+  }
+
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    position: relative;
+  }
+
+  .panel h2 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.375rem;
+  }
+
+  .panel > p {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-label {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Quick-action chips */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .chip {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 0.3125rem 0.625rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: hsl(0, 0%, 80%);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .chip:hover {
+    border-color: hsla(180, 70%, 55%, 0.5);
+    color: var(--fg);
+  }
+
+  /* FAQ */
+  .faq-list {
+    list-style: none;
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .faq-item:last-child { border-bottom: none; }
+
+  .faq-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.625rem;
+    padding: 0.625rem 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .faq-q {
+    font-weight: 500;
+    color: var(--fg);
+    font-size: 0.8125rem;
+  }
+
+  .faq-icon {
+    font-size: 0.875rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    color: var(--primary);
+  }
+
+  .faq-item[data-open="true"] .faq-icon { transform: rotate(90deg); }
+
+  .faq-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease;
+  }
+
+  .faq-inner {
+    padding: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+
+  .faq-item[data-open="true"] .faq-content { max-height: 200px; }
+
+  /* Chat */
+  .chat-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 260px;
+    gap: 0.5rem;
+  }
+
+  .chat-window {
+    flex: 1;
+    min-height: 240px;
+    max-height: 460px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0.75rem;
+    overflow-y: auto;
+    font-size: 0.875rem;
+  }
+
+  .chat-empty {
+    color: var(--muted);
+    font-size: 0.8125rem;
+    text-align: center;
+    margin-top: 3rem;
+    line-height: 1.6;
+  }
+
+  .chat-msg {
+    margin: 0.5rem 0;
+    display: flex;
+    opacity: 0;
+    transform: translateY(4px);
+    animation: fadeIn 180ms ease-out forwards;
+  }
+
+  .chat-msg.user { justify-content: flex-end; }
+  .chat-msg.assistant { justify-content: flex-start; }
+
+  .bubble {
+    padding: 0.5rem 0.75rem;
+    max-width: 78%;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-size: 0.8125rem;
+  }
+
+  .chat-msg.user .bubble {
+    background: var(--primary);
+    color: var(--primary-fg);
+    font-weight: 500;
+  }
+
+  .chat-msg.assistant .bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: hsl(0, 0%, 88%);
+  }
+
+  .chat-input-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .chat-input-row textarea {
+    flex: 1;
+    resize: none;
+    min-height: 44px;
+    max-height: 94px;
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .chat-input-row textarea:focus { border-color: var(--primary); }
+
+  .btn-send {
+    padding: 0 1rem;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: var(--primary-fg);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: box-shadow 0.2s;
+  }
+
+  .btn-send:hover { box-shadow: 0 0 16px -4px hsla(180, 70%, 55%, 0.4); }
+  .btn-send[disabled] { opacity: 0.5; cursor: default; }
+
+  .helper {
+    margin-top: 0.25rem;
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+
+  .helper--footer {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .helper--footer strong { color: var(--fg); font-weight: 500; }
+
+  @keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    header { padding: 0 1rem; }
+    main { padding: 1.25rem 1rem 2rem; }
+    .nav-links { gap: 0.75rem; }
+    .nav-links a { font-size: 0.6rem; padding: 0.25rem 0.375rem; letter-spacing: 0.1em; }
+    .title-row { flex-direction: column; }
+    .title-main { max-width: 100%; }
+    .chat-window { min-height: 200px; max-height: 340px; }
+    .bubble { max-width: 88%; }
+    .chip { font-size: 0.6rem; padding: 0.25rem 0.5rem; }
+  }
+
+  @media (max-width: 400px) {
+    header { padding: 0 0.75rem; height: 56px; }
+    .logo { font-size: 1rem; }
+    .nav-links { gap: 0.375rem; }
+    .nav-links a { font-size: 0.5rem; padding: 0.1875rem 0.25rem; letter-spacing: 0.06em; border: none; }
+    main { padding: 1rem 0.75rem 1.5rem; }
+    .panel { padding: 1rem; }
+    .title-main h1 { font-size: 1.35rem; }
+    .chat-input-row textarea { font-size: 1rem; }
+    .btn-send { padding: 0 0.625rem; font-size: 0.65rem; }
+    .status-pill { font-size: 0.6rem; padding: 0.25rem 0.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="https://xcommand.cloud" class="logo">xCommand<span>.</span></a>
+  <nav class="nav-links">
+    <a href="https://xcommand.cloud/">Home</a>
+    <a href="https://xcommand.cloud/pay.html">Plans</a>
+    <a href="https://app.xcommand.cloud/support" class="active">Support</a>
+  </nav>
+</header>
+
+<main>
+  <div class="shell">
+    <div class="title-row">
+      <div class="title-main">
+        <h1>Need help with your workspace?</h1>
+        <p>Start with the AI support bot. If your case needs a human, you'll see exactly what to email.</p>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        AI assistant: online
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Chat panel -->
+      <section class="panel chat-wrap panel--chat">
+        <div class="section-label">💬 Live Chat</div>
+        <h2>Describe what's happening</h2>
+        <p>Use one or two sentences, and include your email if it's about a specific purchase.</p>
+
+        <div class="chip-row">
+          <button type="button" class="chip" onclick="sendPresetQuestion('I paid but my workspace link is not opening. Can you help me check what is wrong?')">Workspace not opening</button>
+          <button type="button" class="chip" onclick="sendPresetQuestion('When exactly does my current plan expire?')">Plan expiry</button>
+          <button type="button" class="chip" onclick="sendPresetQuestion('How do I export my n8n workflows as JSON before my container is deleted?')">Export workflows</button>
+          <button type="button" class="chip" onclick="sendPresetQuestion('I think I was charged incorrectly. How do I contact billing support?')">Billing issue</button>
+        </div>
+
+        <div id="chatWindow" class="chat-window">
+          <div id="chatEmpty" class="chat-empty">
+            Start with something like:<br/>
+            <em>"I paid for a 1-day plan but my workspace link is not opening."</em>
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <textarea id="msgBox" placeholder="Type your question here..."></textarea>
+          <button id="sendBtn" class="btn-send">Send</button>
+        </div>
+
+        <div class="helper">Tip: type the same email you used at checkout so the assistant can find your workspace.</div>
+      </section>
+
+      <!-- FAQ panel -->
+      <section class="panel panel--faq">
+        <div class="section-label">📋 FAQ</div>
+        <h2>Common questions</h2>
+        <p>Open the ones that match your situation.</p>
+
+        <div class="chip-row">
+          <span class="chip" style="cursor:default;">Workspace access</span>
+          <span class="chip" style="cursor:default;">Plan expiry</span>
+          <span class="chip" style="cursor:default;">Stripe payments</span>
+          <span class="chip" style="cursor:default;">Exporting</span>
+        </div>
+
+        <ul class="faq-list">
+          <li class="faq-item" data-open="false">
+            <button class="faq-toggle" type="button">
+              <span class="faq-q">I paid but I can't see my workspace link.</span>
+              <span class="faq-icon">›</span>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">Search your email for "xCommand workspace ready". If nothing shows, ask the AI bot here and include the email you used at checkout.</div>
+            </div>
+          </li>
+          <li class="faq-item" data-open="false">
+            <button class="faq-toggle" type="button">
+              <span class="faq-q">What happens when my plan expires?</span>
+              <span class="faq-icon">›</span>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">The container is stopped and wiped. Export your workflows as JSON before expiry. The AI assistant can walk you through how to export and re-import.</div>
+            </div>
+          </li>
+          <li class="faq-item" data-open="false">
+            <button class="faq-toggle" type="button">
+              <span class="faq-q">Can I extend from 1-day to 5-day?</span>
+              <span class="faq-icon">›</span>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">Yes. You can purchase a new plan with the same email. The AI can explain how expiry times are calculated for new purchases.</div>
+            </div>
+          </li>
+          <li class="faq-item" data-open="false">
+            <button class="faq-toggle" type="button">
+              <span class="faq-q">Is there human support?</span>
+              <span class="faq-icon">›</span>
+            </button>
+            <div class="faq-content">
+              <div class="faq-inner">During beta, this AI bot is the main entry point. For billing-only issues, it will tell you exactly what to email and where.</div>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="helper--footer">
+      If the AI says your case needs a human, email
+      <strong>xcommand.cloud@gmail.com</strong> with your checkout email,
+      plan (24-hour / 5-Day), purchase time, and workspace URL.
+    </div>
+  </div>
+</main>
+
+<script>
+const API_BASE = "";
+
+const chatWindow = document.getElementById("chatWindow");
+const chatEmpty  = document.getElementById("chatEmpty");
+const msgBox     = document.getElementById("msgBox");
+const sendBtn    = document.getElementById("sendBtn");
+
+let history = [];
+let typingInterval = null;
+
+function appendMessage(role, text) {
+  if (chatEmpty) chatEmpty.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg " + (role === "user" ? "user" : "assistant");
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  chatWindow.appendChild(wrap);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function showTypingIndicator() {
+  if (chatEmpty) chatEmpty.style.display = "none";
+  if (document.getElementById("typingIndicator")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg assistant";
+  wrap.id = "typingIndicator";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = "•";
+  wrap.appendChild(bubble);
+  chatWindow.appendChild(wrap);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  let dots = 1;
+  typingInterval = setInterval(() => {
+    dots = (dots % 3) + 1;
+    bubble.textContent = "•".repeat(dots);
+  }, 350);
+}
+
+function hideTypingIndicator() {
+  if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
+  const el = document.getElementById("typingIndicator");
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function autoResizeTextbox() {
+  msgBox.style.height = "auto";
+  msgBox.style.height = Math.min(msgBox.scrollHeight, 120) + "px";
+}
+
+async function sendMsg() {
+  const text = (msgBox.value || "").trim();
+  if (!text) return;
+  msgBox.value = "";
+  msgBox.focus();
+  history.push({ role: "user", content: text });
+  appendMessage("user", text);
+  showTypingIndicator();
+  sendBtn.disabled = true;
+
+  try {
+    const resp = await fetch(API_BASE + "/support/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: history })
+    });
+    const data = await resp.json();
+    hideTypingIndicator();
+    if (data.reply) {
+      history.push({ role: "assistant", content: data.reply });
+      appendMessage("assistant", data.reply);
+    } else {
+      appendMessage("assistant", "Something went wrong while contacting support.");
+    }
+  } catch (err) {
+    hideTypingIndicator();
+    appendMessage("assistant", "Network error while calling /support/chat.");
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+function sendPresetQuestion(text) {
+  if (sendBtn.disabled) return;
+  msgBox.value = text;
+  autoResizeTextbox();
+  sendMsg();
+}
+
+function initChat() {
+  const welcome = "Hi, I'm the xCommand Cloud assistant. I can help with payments, workspace access, expiry times, and exporting your n8n workflows. Tell me what happened in one or two sentences (and include your email if it's about a specific purchase).";
+  history.push({ role: "assistant", content: welcome });
+  appendMessage("assistant", welcome);
+  if (msgBox) msgBox.focus();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initChat();
+  document.querySelectorAll(".faq-item").forEach(item => {
+    item.querySelector(".faq-toggle").addEventListener("click", () => {
+      const isOpen = item.getAttribute("data-open") === "true";
+      item.setAttribute("data-open", isOpen ? "false" : "true");
+    });
+  });
+});
+
+sendBtn.addEventListener("click", sendMsg);
+msgBox.addEventListener("input", autoResizeTextbox);
+msgBox.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+</script>
+</body>
+</html>
