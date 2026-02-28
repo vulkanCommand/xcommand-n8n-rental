@@ -63,11 +63,16 @@ class ProvisionRequest(BaseModel):
     plan: str  # '1d' or '5d'
 
 
+class FreeProvisionRequest(BaseModel):
+    email: EmailStr
+
+
 class CheckoutRequest(BaseModel):
     email: EmailStr
     plan: str  # "1d" or "5d"
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
+
 
 class BackupRequest(BaseModel):
     workspace_id: int
@@ -75,6 +80,7 @@ class BackupRequest(BaseModel):
     container_name: str
     volume_name: str
     expires_at: datetime  # ISO string from n8n will be parsed automatically
+
 
 def extract_email_from_messages(messages):
     for item in reversed(messages):  # check newest first
@@ -91,7 +97,7 @@ def provision_core(email: str, plan: str):
     """
     Provision a new n8n workspace for the given email and plan.
 
-    - Valid plans: '1d' (24 hours) or '5d' (5 days)
+    - Valid plans: '1d' (24 hours) or '5d' (5 days) or 'free' (24 hours)
     - Creates app_users row if needed
     - Inserts a payment record (dev/test)
     - Inserts a workspace row
@@ -100,11 +106,11 @@ def provision_core(email: str, plan: str):
     """
     email = email.strip().lower()
 
-    if plan not in ("1d", "5d"):
-        raise ValueError("plan must be '1d' or '5d'")
+    if plan not in ("1d", "5d", "free"):
+        raise ValueError("plan must be '1d' or '5d' or 'free'")
 
     # Duration based on plan
-    days = 1 if plan == "1d" else 5
+    days = 1 if plan in ("1d", "free") else 5
 
     # Random workspace subdomain like "u-3d83d4"
     sub = f"u-{secrets.token_hex(3)}"
@@ -131,15 +137,21 @@ def provision_core(email: str, plan: str):
         (email,),
     )
 
-    # Record a fake payment (dev only)
-    amount_cents = 99 if days == 1 else 300
+    # Record a payment row (free is $0, paid/test is dev only)
+    if plan == "free":
+        amount_cents = 0
+        session_id = f"free_{secrets.token_hex(6)}"
+    else:
+        amount_cents = 99 if plan == "1d" else 300
+        session_id = f"test_{secrets.token_hex(6)}"
+
     execute(
         """
         insert into payments (stripe_session_id, email, plan, amount_cents)
         values (%s, %s, %s, %s)
         on conflict (stripe_session_id) do nothing
         """,
-        (f"test_{secrets.token_hex(6)}", email, plan, amount_cents),
+        (session_id, email, plan, amount_cents),
     )
 
     # Create workspace row in "provisioning" state
@@ -263,6 +275,47 @@ def get_workspaces_by_email(email: EmailStr):
 # --- Workspace lifecycle management ------------------------------------------
 
 
+@app.post("/provision/free")
+def provision_free(req: FreeProvisionRequest):
+    """
+    Provision a free (24h) workspace without Stripe.
+    Reuse an existing non-expired workspace if one exists.
+    """
+    normalized_email = str(req.email).strip().lower()
+
+    existing = fetch_all(
+        """
+        select
+          id,
+          email,
+          plan,
+          subdomain,
+          fqdn,
+          container_name,
+          volume_name,
+          status,
+          expires_at,
+          created_at
+        from workspaces
+        where email = %s
+          and status <> 'deleted'
+          and expires_at > now() at time zone 'utc'
+        order by created_at desc
+        limit 1
+        """,
+        (normalized_email,),
+    )
+
+    if existing:
+        return JSONResponse(jsonable_encoder({"ok": True, "reused": True, "workspace": existing[0]}))
+
+    try:
+        row = provision_core(normalized_email, "free")
+        return JSONResponse(jsonable_encoder({"ok": True, "reused": False, "workspace": row}))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/provision/test")
 def provision_test(req: ProvisionRequest):
     """
@@ -321,6 +374,7 @@ def wipe_workspace(sub: str = Path(..., pattern=r"^u-[0-9a-f]{6}$")):
     wiped = remove_volume(volume_name)
     execute("update workspaces set status='deleted' where subdomain=%s", (sub,))
     return {"ok": True, "wiped": wiped}
+
 
 # --- Backup endpoint for n8n --------------------------------------------------
 
