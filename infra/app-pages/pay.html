@@ -18,6 +18,8 @@
     --secondary: hsl(220, 15%, 12%);
     --surface: hsl(220, 16%, 9%);
     --glow-secondary: hsl(200, 80%, 60%);
+    --warn: hsl(38, 95%, 70%);
+    --success: hsl(150, 70%, 55%);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -87,7 +89,6 @@
   }
 
   .nav-links a:hover { color: var(--fg); }
-
   .nav-links a.active { color: var(--primary); }
 
   /* Container */
@@ -130,7 +131,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1rem;
-    max-width: 720px;
+    max-width: 980px;
   }
 
   .card {
@@ -139,12 +140,13 @@
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.18s ease;
     position: relative;
   }
 
   .card:hover {
     border-color: hsla(180, 70%, 55%, 0.3);
+    transform: translateY(-1px);
   }
 
   .card.popular {
@@ -167,6 +169,7 @@
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+    justify-content: space-between;
   }
 
   .card-title {
@@ -188,6 +191,19 @@
     text-transform: uppercase;
     letter-spacing: 0.15em;
     color: var(--primary);
+    white-space: nowrap;
+  }
+
+  .badge.soon {
+    background: hsla(38, 95%, 70%, 0.08);
+    border-color: hsla(38, 95%, 70%, 0.18);
+    color: var(--warn);
+  }
+
+  .badge.free {
+    background: hsla(150, 70%, 55%, 0.08);
+    border-color: hsla(150, 70%, 55%, 0.18);
+    color: var(--success);
   }
 
   .price {
@@ -271,14 +287,9 @@
     box-shadow: 0 0 20px -5px hsla(180, 70%, 55%, 0.4);
   }
 
-  .card.popular .select-btn {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-fg);
-  }
-
-  .card.popular .select-btn:hover {
-    box-shadow: 0 0 20px -5px hsla(180, 70%, 55%, 0.4);
+  .select-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   /* Arrow icon */
@@ -295,7 +306,7 @@
   /* Email Box */
   .email-box {
     margin: 2.5rem auto 0;
-    max-width: 480px;
+    max-width: 520px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     padding: 1.5rem;
@@ -379,6 +390,146 @@
     color: var(--muted);
   }
 
+  /* --- Provision overlay (Free plan) --- */
+  .hidden { display: none !important; }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background:
+      radial-gradient(circle at 20% 10%, hsla(180,70%,55%,0.12), transparent 45%),
+      radial-gradient(circle at 80% 20%, hsla(200,80%,60%,0.10), transparent 45%),
+      hsla(220, 20%, 4%, 0.86);
+    backdrop-filter: blur(16px);
+    display: grid;
+    place-items: center;
+    padding: 20px;
+  }
+
+  .overlay-card {
+    width: min(860px, 100%);
+    border: 1px solid hsla(220, 14%, 20%, 0.9);
+    background: hsla(220, 18%, 7%, 0.92);
+    box-shadow: 0 0 60px -18px hsla(180, 70%, 55%, 0.18);
+    padding: 18px;
+  }
+
+  .overlay-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .overlay-title {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 0 18px hsla(180, 70%, 55%, 0.45);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.75; }
+    50% { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.75; }
+  }
+
+  .terminal {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    background: hsl(220, 22%, 3%);
+    padding: 14px;
+    min-height: 220px;
+    display: grid;
+    gap: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: hsl(0, 0%, 92%);
+  }
+
+  .term-line {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: lineIn .35s ease forwards;
+  }
+
+  @keyframes lineIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .term-bullet {
+    color: hsla(180, 70%, 55%, 0.9);
+    margin-top: 1px;
+  }
+
+  .term-text {
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+
+  .term-muted {
+    color: hsla(220, 10%, 70%, 0.85);
+  }
+
+  .progress {
+    height: 10px;
+    border: 1px solid var(--border);
+    background: hsla(220, 15%, 10%, 0.8);
+    overflow: hidden;
+    margin-top: 12px;
+  }
+
+  .progress > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, hsla(180,70%,55%,0.9), hsla(200,80%,60%,0.9));
+    box-shadow: 0 0 22px -6px hsla(180,70%,55%,0.35);
+    transition: width .35s ease;
+  }
+
+  .overlay-foot {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  .overlay-foot strong {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .overlay-error {
+    margin-top: 10px;
+    color: var(--warn);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    display: none;
+  }
+
   @media (max-width: 768px) {
     header { padding: 0 1rem; }
     .container { padding: 100px 1rem 60px; }
@@ -421,10 +572,51 @@
   <p class="subtitle">No setup. No maintenance. Your isolated n8n workspace launches instantly.</p>
 
   <div class="pricing-grid">
-    <!-- Explorer -->
-    <div class="card" data-plan="1d">
+    <!-- Free -->
+    <div class="card popular" data-plan="free">
+      <div class="card-header">
+        <span class="card-title">Free</span>
+        <span class="badge free">Try it</span>
+      </div>
+      <div style="margin-bottom: 0.25rem;">
+        <span class="price">$0</span>
+        <span class="price-meta">per workspace</span>
+      </div>
+      <p class="duration">24 hours access</p>
+      <p class="desc">Instant sandbox for trying xCommand. Same workflow UI. Auto-expires after 24 hours.</p>
+      <ul class="features">
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Dedicated n8n workspace
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Full n8n UI
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Zero setup required
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Auto-expiry after 24 hours
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          One click to start
+        </li>
+      </ul>
+      <button class="select-btn">
+        Select plan
+        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+
+    <!-- Explorer (Coming soon) -->
+    <div class="card" data-plan="1d" data-disabled="true">
       <div class="card-header">
         <span class="card-title">Explorer</span>
+        <span class="badge soon">Coming soon</span>
       </div>
       <div style="margin-bottom: 0.25rem;">
         <span class="price">$1</span>
@@ -454,17 +646,17 @@
           Secure isolated container
         </li>
       </ul>
-      <button class="select-btn">
+      <button class="select-btn" disabled>
         Select plan
         <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
     </div>
 
-    <!-- Builder -->
-    <div class="card popular" data-plan="5d">
+    <!-- Builder (Coming soon) -->
+    <div class="card" data-plan="5d" data-disabled="true">
       <div class="card-header">
         <span class="card-title">Builder</span>
-        <span class="badge">★ Popular</span>
+        <span class="badge soon">Coming soon</span>
       </div>
       <div style="margin-bottom: 0.25rem;">
         <span class="price">$3</span>
@@ -494,7 +686,7 @@
           Perfect for multi-day builds
         </li>
       </ul>
-      <button class="select-btn active">
+      <button class="select-btn" disabled>
         Select plan
         <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
@@ -505,44 +697,180 @@
   <div class="email-box" id="email-box">
     <label for="email-input">Your email for this workspace</label>
     <input id="email-input" type="email" placeholder="you@example.com" required>
-    <button class="continue-btn" id="continue-btn">Continue to checkout</button>
-    <p class="hint">We'll use this email to provision and look up your workspace. Stripe will also ask for an email for the receipt.</p>
+    <button class="continue-btn" id="continue-btn">Continue</button>
+    <p class="hint" id="hint-text">We’ll use this email to provision and look up your workspace.</p>
   </div>
 </div>
 
 <footer>
-  <p>&copy; 2025 xCommand Cloud. All rights reserved.</p>
+  <p>&copy; 2026 xCommand Cloud. All rights reserved.</p>
 </footer>
+
+<!-- Provision overlay -->
+<div class="overlay hidden" id="provision-overlay" aria-hidden="true">
+  <div class="overlay-card">
+    <div class="overlay-top">
+      <div class="overlay-title"><span class="pulse"></span>Provisioning workspace</div>
+      <div style="color: var(--muted); font-size: 0.75rem;">A few seconds</div>
+    </div>
+
+    <div class="terminal" id="term"></div>
+
+    <div class="progress" aria-label="progress">
+      <div id="progress-bar"></div>
+    </div>
+
+    <div class="overlay-foot">
+      <div>Plan: <strong id="overlay-plan">Free</strong></div>
+      <div>Email: <strong id="overlay-email">-</strong></div>
+    </div>
+
+    <div class="overlay-error" id="overlay-error">
+      Provisioning failed. Please try again.
+    </div>
+  </div>
+</div>
 
 <script>
 const API_BASE = "https://api.app.xcommand.cloud";
 const CHECKOUT_ENDPOINT = "/stripe/create-checkout-session";
+const FREE_PROVISION_ENDPOINT = "/provision/free";
 
 const cards = document.querySelectorAll(".card");
 const emailBox = document.getElementById("email-box");
 const emailInput = document.getElementById("email-input");
 const continueBtn = document.getElementById("continue-btn");
+const hintText = document.getElementById("hint-text");
+
+const overlay = document.getElementById("provision-overlay");
+const term = document.getElementById("term");
+const progressBar = document.getElementById("progress-bar");
+const overlayPlan = document.getElementById("overlay-plan");
+const overlayEmail = document.getElementById("overlay-email");
+const overlayError = document.getElementById("overlay-error");
+
 let selectedPlan = null;
+
+function isFree(plan) { return plan === "free"; }
+
+function setContinueText() {
+  if (isFree(selectedPlan)) {
+    continueBtn.textContent = "Start Free Workspace";
+    hintText.textContent = "We’ll create your workspace now and redirect you to the ready page.";
+  } else {
+    continueBtn.textContent = "Continue to checkout";
+    hintText.textContent = "We’ll use this email to provision and look up your workspace. Stripe will also ask for an email for the receipt.";
+  }
+}
+
+function setContinueLoading(isLoading) {
+  continueBtn.disabled = isLoading;
+  if (!selectedPlan) {
+    continueBtn.textContent = "Continue";
+    return;
+  }
+  if (isLoading) {
+    continueBtn.textContent = isFree(selectedPlan) ? "Provisioning…" : "Creating secure checkout…";
+  } else {
+    setContinueText();
+  }
+}
+
+function showOverlay(plan, email) {
+  overlayPlan.textContent = isFree(plan) ? "Free" : plan;
+  overlayEmail.textContent = email;
+  overlayError.style.display = "none";
+  term.innerHTML = "";
+  progressBar.style.width = "0%";
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function addTermLine(text, muted=false) {
+  const line = document.createElement("div");
+  line.className = "term-line";
+  const bullet = document.createElement("div");
+  bullet.className = "term-bullet";
+  bullet.textContent = ">";
+  const t = document.createElement("div");
+  t.className = "term-text" + (muted ? " term-muted" : "");
+  t.textContent = text;
+  line.appendChild(bullet);
+  line.appendChild(t);
+  term.appendChild(line);
+
+  const idx = term.querySelectorAll(".term-line").length;
+  line.style.animationDelay = `${Math.min(0.9, idx * 0.08)}s`;
+}
+
+async function runFreeProvision(plan, email) {
+  showOverlay(plan, email);
+
+  const steps = [
+    { pct: 14, text: "Allocating isolated workspace slot…" },
+    { pct: 30, text: "Pulling n8n image…", muted: true },
+    { pct: 46, text: "Creating Docker volume…" },
+    { pct: 62, text: "Starting container + routing…" },
+    { pct: 78, text: "Applying encryption + health checks…", muted: true },
+    { pct: 92, text: "Finalizing workspace URL…" },
+  ];
+
+  for (const s of steps) {
+    addTermLine(s.text, !!s.muted);
+    progressBar.style.width = `${s.pct}%`;
+    await new Promise(r => setTimeout(r, 520));
+  }
+
+  try {
+    const res = await fetch(API_BASE + FREE_PROVISION_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || "Provision API error");
+    }
+
+    const data = await res.json();
+    addTermLine(data.reused ? "Workspace found. Reusing existing instance." : "Workspace created successfully.");
+    progressBar.style.width = "100%";
+    await new Promise(r => setTimeout(r, 650));
+
+    window.location.href = `${window.location.origin}/ready.html`;
+  } catch (err) {
+    console.error(err);
+    overlayError.style.display = "block";
+    addTermLine("Provisioning failed. Please try again.", true);
+    progressBar.style.width = "100%";
+    setContinueLoading(false);
+    document.body.style.overflow = "";
+  }
+}
 
 cards.forEach(card => {
   const btn = card.querySelector(".select-btn");
+  const disabled = card.getAttribute("data-disabled") === "true";
+  if (disabled) return;
+
   btn.addEventListener("click", () => {
     document.querySelectorAll(".select-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedPlan = card.dataset.plan;
+
     emailBox.classList.add("visible");
+    setContinueText();
+
     emailBox.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => emailInput.focus(), 400);
   });
 });
 
-function setContinueLoading(isLoading) {
-  continueBtn.disabled = isLoading;
-  continueBtn.textContent = isLoading ? "Creating secure checkout…" : "Continue to checkout";
-}
-
 continueBtn.addEventListener("click", async () => {
   if (!selectedPlan) { alert("Please select a plan first."); return; }
+
   const email = emailInput.value.trim();
   if (!email) { alert("Please enter your email."); emailInput.focus(); return; }
 
@@ -551,6 +879,13 @@ continueBtn.addEventListener("click", async () => {
     localStorage.setItem("x_plan", selectedPlan);
   } catch (e) { console.warn("localStorage not available", e); }
 
+  if (isFree(selectedPlan)) {
+    setContinueLoading(true);
+    await runFreeProvision(selectedPlan, email);
+    return;
+  }
+
+  // Paid: Stripe flow (kept intact)
   const successUrl = window.location.origin + "/ready.html";
   const cancelUrl = window.location.href;
 
