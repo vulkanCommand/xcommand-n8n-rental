@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 import json
 import urllib.request
 import urllib.parse
@@ -64,6 +65,15 @@ def pay_page():
 @app.get("/ready.html", response_class=HTMLResponse)
 def ready_page():
     return FileResponse("ready.html")
+
+@app.get("/support.html")
+def support_html():
+    # If you ever keep a standalone support.html in web/, serve it.
+    if os.path.exists("support.html"):
+        return FileResponse("support.html")
+
+    # Otherwise, redirect to the SPA route that already works
+    return RedirectResponse(url="/support", status_code=302)
 
 
 @app.get("/health")
