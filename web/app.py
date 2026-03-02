@@ -66,14 +66,10 @@ def pay_page():
 def ready_page():
     return FileResponse("ready.html")
 
+@app.get("/support")
 @app.get("/support.html")
-def support_html():
-    # If you ever keep a standalone support.html in web/, serve it.
-    if os.path.exists("support.html"):
-        return FileResponse("support.html")
-
-    # Otherwise, redirect to the SPA route that already works
-    return RedirectResponse(url="/support", status_code=302)
+def support_redirect():
+    return RedirectResponse(url="https://www.xcommand.cloud/support.html", status_code=302)
 
 
 @app.get("/health")
