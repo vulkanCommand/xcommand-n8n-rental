@@ -10,6 +10,24 @@ echo "[xcmd] Pulling latest code from GitHub..."
 git fetch origin main
 git reset --hard origin/main
 
+echo "[xcmd] Syncing git submodules..."
+git submodule sync --recursive
+git submodule update --init --recursive
+
+echo "[xcmd] Building Lovable frontend and syncing into web/..."
+# Don’t break the whole deploy if Node/npm isn’t installed on the server.
+if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  if [ -x "./scripts/lovable.sh" ]; then
+    ./scripts/lovable.sh
+  else
+    echo "[xcmd] WARNING: ./scripts/lovable.sh not found or not executable. Skipping lovable build."
+    echo "[xcmd] Fix: chmod +x ./scripts/lovable.sh"
+  fi
+else
+  echo "[xcmd] WARNING: node/npm not found on server. Skipping lovable build."
+  echo "[xcmd] Current deploy will continue using whatever frontend is already in web/."
+fi
+
 echo "[xcmd] Bringing up containers (build if needed)..."
 docker compose up -d --build
 

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 import json
 import urllib.request
 import urllib.parse
@@ -11,12 +12,50 @@ API_BASE = "http://api:8001"
 WORKSPACE_BASE_DOMAIN = os.getenv("WORKSPACE_BASE_DOMAIN", "xcommand.cloud")
 
 
+# ----------------------------
+# Static assets for Vite build
+# ----------------------------
+# Your build copies dist/assets -> web/assets
+# Without this mount, /assets/*.js and /assets/*.css will 404.
+if os.path.isdir("assets"):
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
+
+def file_or_404(path: str):
+    """Serve a file from the web/ folder if it exists, else 404 JSON."""
+    if os.path.exists(path):
+        return FileResponse(path)
+    return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+
 @app.get("/", response_class=HTMLResponse)
 def landing():
-    # Static landing page
+    # Vite SPA entry
     return FileResponse("index.html")
 
 
+# Root-level static files referenced by the SPA
+@app.get("/og.png")
+def og_png():
+    return file_or_404("og.png")
+
+
+@app.get("/robots.txt")
+def robots_txt():
+    return file_or_404("robots.txt")
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return file_or_404("favicon.ico")
+
+
+@app.get("/placeholder.svg")
+def placeholder_svg():
+    return file_or_404("placeholder.svg")
+
+
+# Legacy standalone pages (still fine to keep)
 @app.get("/pay.html", response_class=HTMLResponse)
 def pay_page():
     return FileResponse("pay.html")
@@ -37,8 +76,12 @@ def health():
 @app.get("/support", response_class=HTMLResponse)
 def support_page():
     """
-    Serve the support UI (support.html).
+    If you're now using the Vite SPA, /support should serve index.html
+    so React Router can render the support page.
+    Fallback: if index.html is missing, serve support.html (old behavior).
     """
+    if os.path.exists("index.html"):
+        return FileResponse("index.html")
     return FileResponse("support.html")
 
 
@@ -157,10 +200,7 @@ def workspace(email: str):
         """
 
     count = len(workspaces)
-    if count == 1:
-        count_text = "You currently have 1 active workspace."
-    else:
-        count_text = f"You currently have {count} active workspaces."
+    count_text = "You currently have 1 active workspace." if count == 1 else f"You currently have {count} active workspaces."
 
     html = f"""
     <html>
