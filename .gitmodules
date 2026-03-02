@@ -1,0 +1,3 @@
+[submodule "frontend-lovable"]
+	path = frontend-lovable
+	url = https://github.com/vulkanCommand/21st-century-site.git
