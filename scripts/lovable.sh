@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_DIR="$ROOT_DIR/frontend-lovable"
 WEB_DIR="$ROOT_DIR/web"
+LANDING_DIR="$ROOT_DIR/infra/n8n/landing"
 
 echo "==> Syncing lovable submodule..."
 cd "$ROOT_DIR"
@@ -48,14 +49,33 @@ if [ ! -d "$FRONTEND_DIR/dist" ]; then
   exit 1
 fi
 
-echo "==> Copying build output into web/ (static hosting)..."
-mkdir -p "$WEB_DIR/static"
+echo "==> Copying build output into web/ (app.xcommand.cloud)..."
+mkdir -p "$WEB_DIR"
 
-# Wipe previous generated static assets (safe)
-rm -rf "$WEB_DIR/static/"*
+# Remove old Vite build artifacts from web/ (but do NOT touch your python backend files)
+rm -rf "$WEB_DIR/assets" 2>/dev/null || true
+rm -f  "$WEB_DIR/index.html" \
+       "$WEB_DIR/robots.txt" \
+       "$WEB_DIR/favicon.ico" \
+       "$WEB_DIR/og.png" \
+       "$WEB_DIR/placeholder.svg" 2>/dev/null || true
 
-# Copy new build output
 cp -R "$FRONTEND_DIR/dist/"* "$WEB_DIR/"
 
-echo "==> Done. web/ now contains latest lovable build."
-echo "Next: commit web/ changes in main repo if you want them versioned."
+echo "==> Copying build output into infra/n8n/landing (landing site + legacy sync)..."
+mkdir -p "$LANDING_DIR"
+
+# Replace landing bundle with latest build
+rm -rf "$LANDING_DIR/assets" 2>/dev/null || true
+rm -f  "$LANDING_DIR/index.html" \
+       "$LANDING_DIR/robots.txt" \
+       "$LANDING_DIR/favicon.ico" \
+       "$LANDING_DIR/og.png" \
+       "$LANDING_DIR/placeholder.svg" 2>/dev/null || true
+
+cp -R "$FRONTEND_DIR/dist/"* "$LANDING_DIR/"
+
+echo "==> Done."
+echo " - web/ updated (app.xcommand.cloud)"
+echo " - infra/n8n/landing updated (landing + legacy sync)"
+echo "Next: commit web/ and infra/n8n/landing changes in main repo if you want them versioned."
