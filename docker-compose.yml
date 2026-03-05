@@ -12,7 +12,7 @@ services:
       GF_SERVER_ROOT_URL: "https://ops.xcommand.cloud"
       GF_INSTALL_PLUGINS: ""
     volumes:
-      - grafana-data:/var/lib/grafana
+      - xcommand-n8n-rental_grafana-data:/var/lib/grafana
     networks:
       - web
       - internal
@@ -200,5 +200,6 @@ networks:
 
 volumes:
   pg_data:
-  grafana-data:
+  xcommand-n8n-rental_grafana-data:
+    external: true
   prometheus-data:
