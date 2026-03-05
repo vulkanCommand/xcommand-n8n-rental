@@ -36,23 +36,42 @@ docker compose ps
 
 echo "[xcmd] Deploy complete."
 
+# ---------------------------
+# FIX: keep support chat API stable across deploys
+# ---------------------------
+SUPPORT_API="https://api.app.xcommand.cloud"
+
+echo "[deploy] Forcing Support API_BASE to: ${SUPPORT_API}"
+
+# Update BOTH possible sources (depends what you're copying)
+if [ -f "/srv/xcommand-n8n-from-github/infra/n8n/landing/support.html" ]; then
+  sed -i -E "s|const API_BASE = \"[^\"]*\";|const API_BASE = \"${SUPPORT_API}\";|g" \
+    /srv/xcommand-n8n-from-github/infra/n8n/landing/support.html
+fi
+
+if [ -f "/srv/xcommand-n8n-from-github/infra/app-pages/support.html" ]; then
+  sed -i -E "s|const API_BASE = \"[^\"]*\";|const API_BASE = \"${SUPPORT_API}\";|g" \
+    /srv/xcommand-n8n-from-github/infra/app-pages/support.html
+fi
+
 echo "[deploy] Syncing landing (Lovable) into legacy n8n paths..."
 mkdir -p /srv/n8n/landing /srv/n8n/site
 
-# Copy the full landing bundle (index + assets + nginx.conf + robots.txt + support.html etc.)
+# Copy landing bundle
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/. /srv/n8n/landing/
-# Keep legacy /srv/n8n/site/index.html in sync too
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/index.html /srv/n8n/site/index.html
 
 echo "[deploy] Landing sync complete."
 
-echo "[deploy] Syncing app pages (pay/ready) into legacy n8n landing..."
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/pay.html   /srv/n8n/landing/pay.html
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/ready.html /srv/n8n/landing/ready.html
-
-# NOTE:
-# Do NOT overwrite /srv/n8n/landing/support.html here.
-# support.html is owned by /infra/n8n/landing/support.html (single source of truth).
-# Overwriting it from /infra/app-pages/support.html caused the API_BASE to revert to "" and break chat.
+echo "[deploy] Syncing app pages (pay/ready/support) into legacy n8n landing..."
+cp -a /srv/xcommand-n8n-from-github/infra/app-pages/pay.html     /srv/n8n/landing/pay.html
+cp -a /srv/xcommand-n8n-from-github/infra/app-pages/ready.html   /srv/n8n/landing/ready.html
+cp -a /srv/xcommand-n8n-from-github/infra/app-pages/support.html /srv/n8n/landing/support.html
 
 echo "[deploy] App pages sync complete."
+
+echo "[deploy] Restarting landing container to ensure latest HTML is served..."
+docker restart landing >/dev/null 2>&1 || true
+
+echo "[deploy] Verifying served Support API_BASE..."
+grep -n 'const API_BASE' /srv/n8n/landing/support.html | head -n 3 || true
