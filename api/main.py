@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
-from db import fetch_all, fetch_one, execute
+from db import fetch_all, execute
 from openai_client import chat_with_openai
 from provisioner import start_n8n_local, stop_container, remove_volume
 
@@ -510,7 +510,7 @@ def metric_active_workspaces():
     Return the number of non-expired, non-deleted workspaces.
     Used by Grafana for accurate active workspace counts.
     """
-    row = fetch_one(
+    row = fetch_all(
         """
         SELECT COUNT(*) AS count
         FROM workspaces
