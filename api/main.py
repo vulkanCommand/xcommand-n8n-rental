@@ -12,26 +12,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
-from db import fetch_all, execute
+from db import fetch_all, fetch_one, execute
 from openai_client import chat_with_openai
 from provisioner import start_n8n_local, stop_container, remove_volume
 
-
-from fastapi.middleware.cors import CORSMiddleware
-
 app = FastAPI()
 
+# CORS: must include www.xcommand.cloud because your landing redirects root -> www
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://xcommand.cloud",      # landing + pay.html
-        "https://app.xcommand.cloud",  # app frontend (ready.html, support, etc.)
+        "https://xcommand.cloud",
+        "https://www.xcommand.cloud",
+        "https://app.xcommand.cloud",
     ],
-    allow_credentials=True,           # this is allowed because we are not using "*"
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # --- Knowledge base for the support bot --------------------------------------
 
@@ -44,7 +42,6 @@ try:
 except Exception as e:
     print("[support] Failed to load support_knowledge.md:", e)
     XCOMMAND_KNOWLEDGE = ""
-
 
 # --- Models -------------------------------------------------------------------
 
@@ -164,7 +161,7 @@ def provision_core(email: str, plan: str):
     )
 
     # Boot local n8n with explicit expires_at for janitor label
-    host_port = start_n8n_local(
+    start_n8n_local(
         container_name=container_name,
         volume_name=volume_name,
         encryption_key=os.getenv("ENCRYPTION_KEY", "devkey"),
@@ -260,7 +257,6 @@ def get_workspaces_by_email(email: EmailStr):
         where email = %s
           and status <> 'deleted'
           and expires_at > now() at time zone 'utc'
-
         order by created_at desc
         """,
         (normalized_email,),
@@ -383,7 +379,6 @@ def backup_workspace(req: BackupRequest):
     """
     Endpoint for n8n to trigger a 'backup-before-expiry' action.
     """
-    # 1) Check that the workspace exists
     rows = fetch_all(
         """
         select
@@ -407,22 +402,16 @@ def backup_workspace(req: BackupRequest):
     if ws["email"] != req.email:
         raise HTTPException(status_code=400, detail="email does not match workspace record")
 
-    # 2) TODO: put your real backup logic here
-    # For now we just log so you can see it in container logs.
     print(
         f"[backup] Request received for workspace_id={req.workspace_id}, "
         f"email={req.email}, container={req.container_name}, volume={req.volume_name}, "
         f"expires_at={req.expires_at}"
     )
 
-    # Do NOT update export_notice_sent here.
-    # Your n8n step 6 already sets export_notice_sent = true.
-
     return {"ok": True, "workspace_id": req.workspace_id}
 
 
 # --- Stripe checkout + webhook -----------------------------------------------
-
 
 @app.post("/stripe/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest):
@@ -433,11 +422,9 @@ async def create_checkout_session(req: CheckoutRequest):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe secret not configured")
 
-    # Basic plan validation
     if req.plan not in ("1d", "5d"):
         raise HTTPException(status_code=400, detail="Invalid plan")
 
-    # Amounts in cents
     amount_map = {
         "1d": 100,  # $1
         "5d": 300,  # $3
@@ -449,7 +436,6 @@ async def create_checkout_session(req: CheckoutRequest):
 
     amount = amount_map[req.plan]
 
-    # Always use HTTPS URLs that Stripe accepts (ignore frontend file:// urls)
     success_url = "https://app.xcommand.cloud/ready.html"
     cancel_url = "https://app.xcommand.cloud/pay.html"
 
@@ -483,25 +469,12 @@ async def create_checkout_session(req: CheckoutRequest):
 async def stripe_webhook(request: Request):
     """
     Webhook endpoint for Stripe checkout.session.completed.
-
-    Expected payload shape (simplified):
-
-    {
-      "type": "checkout.session.completed",
-      "data": {
-        "object": {
-          "customer_details": { "email": "user@example.com" },
-          "metadata": { "email": "...", "plan": "1d" }
-        }
-      }
-    }
     """
     try:
         event = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # Ignore other Stripe event types
     if event.get("type") != "checkout.session.completed":
         return JSONResponse({"ok": True, "ignored": True})
 
@@ -518,21 +491,18 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Missing email in event")
     email = email.strip().lower()
 
-    # Basic plan validation
     if plan not in ("1d", "5d"):
         raise HTTPException(status_code=400, detail="Invalid plan")
 
     try:
         workspace = provision_core(email=email, plan=plan)
     except Exception as e:
-        # Surface provisioning errors as 400 for now
         raise HTTPException(status_code=400, detail=str(e))
 
     return JSONResponse(jsonable_encoder({"ok": True, "workspace": workspace}))
 
 
-# --- AI Support Chat ----------------------------------------------------------
-
+# --- Metrics ------------------------------------------------------------------
 
 @app.get("/metrics/active-workspaces")
 def metric_active_workspaces():
@@ -540,26 +510,24 @@ def metric_active_workspaces():
     Return the number of non-expired, non-deleted workspaces.
     Used by Grafana for accurate active workspace counts.
     """
-    row = fetch_one("""
+    row = fetch_one(
+        """
         SELECT COUNT(*) AS count
         FROM workspaces
         WHERE status <> 'deleted'
           AND expires_at > NOW() AT TIME ZONE 'utc'
-    """)
+        """
+    )
     return {"active_workspaces": row["count"]}
 
 
+# --- AI Support Chat ----------------------------------------------------------
 
 @app.post("/support/chat")
 async def support_chat(payload: ChatRequest):
     """
     AI support endpoint.
-
-    - Answers only questions about xCommand Cloud: plans, payments, workspaces, expiry, provisioning,
-      troubleshooting, and n8n workflow basics.
     """
-
-    # ------------------- 1) SYSTEM PROMPT -------------------------------------
     system_prompt = {
         "role": "system",
         "content": (
@@ -569,26 +537,19 @@ async def support_chat(payload: ChatRequest):
             "  on plans such as 24-hour and 5-Day.\n"
             "- Users pay via Stripe checkout and then receive an email with their workspace URL.\n"
             "- Workspaces are ephemeral: after expiry the container is stopped and wiped.\n\n"
-            "Personality and style (Hybrid):\n"
+            "Personality and style:\n"
             "- Friendly but professional.\n"
             "- Clear, simple, and structured.\n"
             "- Prefer short lists or 2–5 sentences.\n"
             "- Never use marketing tone or long paragraphs.\n\n"
-            "Issue type behavior:\n"
-            "- workspace_access: troubleshooting 4xx/5xx errors, wrong links, not loading.\n"
-            "- expiry: remaining time, deletion rules, how expiry works.\n"
-            "- workflow_export: exporting/importing JSON.\n"
-            "- billing: duplicate charges, payment issues.\n"
-            "- general: anything else about xCommand Cloud.\n\n"
             "Rules:\n"
             "- Always stay inside the xCommand Cloud domain.\n"
-            "- If asked something unrelated (health, generic coding, etc.) decline politely.\n"
+            "- If asked something unrelated decline politely.\n"
             "- When giving steps, be short and actionable.\n"
             "- Never invent policies or features not in the knowledge base.\n"
         ),
     }
 
-    # ------------------- 2) KNOWLEDGE BASE PROMPT -----------------------------
     knowledge_prompt = {
         "role": "system",
         "content": (
@@ -598,7 +559,6 @@ async def support_chat(payload: ChatRequest):
         ),
     }
 
-    # ------------------- 3) EMAIL EXTRACTION ----------------------------------
     user_email = extract_email_from_messages(payload.messages)
 
     if user_email:
@@ -607,7 +567,7 @@ async def support_chat(payload: ChatRequest):
             "content": (
                 f"The user's email appears to be: {user_email}. "
                 "Use this email when answering. Do NOT ask them to repeat it unless truly needed."
-            )
+            ),
         }
     else:
         email_context = {
@@ -615,11 +575,9 @@ async def support_chat(payload: ChatRequest):
             "content": (
                 "No email detected yet. If the question involves payments or workspace access, "
                 "ask for the checkout email."
-            )
+            ),
         }
 
-    # ------------------- 4) WORKSPACE LOOKUP ----------------------------------
-    # Helper function to query DB
     def lookup_latest_workspace(email: str):
         email = email.strip().lower()
         try:
@@ -646,7 +604,6 @@ async def support_chat(payload: ChatRequest):
             return None
         return rows[0]
 
-    # Build workspace context
     if user_email:
         ws = lookup_latest_workspace(user_email)
         if ws:
@@ -656,7 +613,6 @@ async def support_chat(payload: ChatRequest):
             expires_at = ws.get("expires_at")
             created_at = ws.get("created_at")
 
-            # Convert datetimes safely
             def dt(x):
                 if isinstance(x, datetime):
                     return x.astimezone(timezone.utc).isoformat()
@@ -671,30 +627,23 @@ async def support_chat(payload: ChatRequest):
                     f"- url: {fqdn}\n"
                     f"- created_at: {dt(created_at)} (UTC)\n"
                     f"- expires_at: {dt(expires_at)} (UTC)\n\n"
-                    "Use this information when answering. "
-                    "If status='active' and user reports 502/504, explain likely causes. "
-                    "If expired or near expiry, explain expiry rules. "
-                    "If no workspace should exist yet, explain provisioning delay."
-                )
+                    "Use this information when answering."
+                ),
             }
         else:
             workspace_context = {
                 "role": "system",
                 "content": (
                     f"No active workspace found for {user_email}. "
-                    "If the user claims they paid, ask for plan type and payment time, "
-                    "and instruct them what to send to human support."
-                )
+                    "If the user claims they paid, ask for plan type and payment time."
+                ),
             }
     else:
         workspace_context = {
             "role": "system",
-            "content": (
-                "Workspace lookup skipped because no email has been identified yet."
-            )
+            "content": "Workspace lookup skipped because no email has been identified yet.",
         }
 
-    # ------------------- 5) FINAL MESSAGE LIST --------------------------------
     messages = [
         system_prompt,
         knowledge_prompt,
@@ -702,11 +651,9 @@ async def support_chat(payload: ChatRequest):
         workspace_context,
     ]
 
-    # Append user + assistant history
     for msg in payload.messages:
         messages.append({"role": msg.role, "content": msg.content})
 
-    # ------------------- 6) CALL OPENAI ---------------------------------------
     try:
         reply = chat_with_openai(messages)
         return {"reply": reply}
