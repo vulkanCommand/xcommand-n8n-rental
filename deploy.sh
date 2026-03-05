@@ -15,7 +15,6 @@ git submodule sync --recursive
 git submodule update --init --recursive
 
 echo "[xcmd] Building Lovable frontend and syncing into web/..."
-# Don’t break the whole deploy if Node/npm isn’t installed on the server.
 if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
   if [ -x "./scripts/lovable.sh" ]; then
     ./scripts/lovable.sh
@@ -37,27 +36,25 @@ docker compose ps
 echo "[xcmd] Deploy complete."
 
 # ---------------------------
-# FIX: keep support chat API stable across deploys
+# Always force correct Support API after git reset
 # ---------------------------
 SUPPORT_API="https://api.app.xcommand.cloud"
+echo "[deploy] Forcing support API_BASE => ${SUPPORT_API}"
 
-echo "[deploy] Forcing Support API_BASE to: ${SUPPORT_API}"
-
-# Update BOTH possible sources (depends what you're copying)
-if [ -f "/srv/xcommand-n8n-from-github/infra/n8n/landing/support.html" ]; then
-  sed -i -E "s|const API_BASE = \"[^\"]*\";|const API_BASE = \"${SUPPORT_API}\";|g" \
-    /srv/xcommand-n8n-from-github/infra/n8n/landing/support.html
-fi
-
+# Fix the source files in the repo checkout (so copying always works)
 if [ -f "/srv/xcommand-n8n-from-github/infra/app-pages/support.html" ]; then
   sed -i -E "s|const API_BASE = \"[^\"]*\";|const API_BASE = \"${SUPPORT_API}\";|g" \
     /srv/xcommand-n8n-from-github/infra/app-pages/support.html
 fi
 
+if [ -f "/srv/xcommand-n8n-from-github/infra/n8n/landing/support.html" ]; then
+  sed -i -E "s|const API_BASE = \"[^\"]*\";|const API_BASE = \"${SUPPORT_API}\";|g" \
+    /srv/xcommand-n8n-from-github/infra/n8n/landing/support.html
+fi
+
 echo "[deploy] Syncing landing (Lovable) into legacy n8n paths..."
 mkdir -p /srv/n8n/landing /srv/n8n/site
 
-# Copy landing bundle
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/. /srv/n8n/landing/
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/index.html /srv/n8n/site/index.html
 
@@ -70,8 +67,8 @@ cp -a /srv/xcommand-n8n-from-github/infra/app-pages/support.html /srv/n8n/landin
 
 echo "[deploy] App pages sync complete."
 
-echo "[deploy] Restarting landing container to ensure latest HTML is served..."
+echo "[deploy] Restarting landing container to serve latest HTML..."
 docker restart landing >/dev/null 2>&1 || true
 
-echo "[deploy] Verifying served Support API_BASE..."
+echo "[deploy] Final check (served file):"
 grep -n 'const API_BASE' /srv/n8n/landing/support.html | head -n 3 || true
