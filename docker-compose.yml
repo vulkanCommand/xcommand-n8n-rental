@@ -12,7 +12,7 @@ services:
       GF_SERVER_ROOT_URL: "https://ops.xcommand.cloud"
       GF_INSTALL_PLUGINS: ""
     volumes:
-      - xcommand-n8n-rental_grafana-data:/var/lib/grafana
+      - xcmd_grafana_data:/var/lib/grafana
     networks:
       - web
       - internal
@@ -34,9 +34,10 @@ services:
       - "--storage.tsdb.retention.time=15d"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+      - xcmd_prometheus_data:/prometheus
     networks:
       - internal
+      - web
 
   node-exporter:
     image: prom/node-exporter:v1.8.1
@@ -103,7 +104,7 @@ services:
       - traefik.http.routers.xcmd-web.entrypoints=websecure
       - traefik.http.routers.xcmd-web.tls.certresolver=le
       - traefik.http.services.xcmd-web.loadbalancer.server.port=8000
-      - traefik.docker.network=n8n_web          # <<< added
+      - traefik.docker.network=n8n_web
     networks: [web, internal]
     restart: unless-stopped
 
@@ -139,7 +140,7 @@ services:
       - traefik.http.routers.xcmd-api.entrypoints=websecure
       - traefik.http.routers.xcmd-api.tls.certresolver=le
       - traefik.http.services.xcmd-api.loadbalancer.server.port=8001
-      - traefik.docker.network=n8n_web          # <<< added (critical for 502)
+      - traefik.docker.network=n8n_web
     networks: [web, internal]
     restart: unless-stopped
 
@@ -200,6 +201,7 @@ networks:
 
 volumes:
   pg_data:
-  xcommand-n8n-rental_grafana-data:
+  xcmd_grafana_data:
     external: true
-  prometheus-data:
+  xcmd_prometheus_data:
+    external: true
