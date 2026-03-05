@@ -46,9 +46,13 @@ cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/index.html /srv/n8n/site/i
 
 echo "[deploy] Landing sync complete."
 
-echo "[deploy] Syncing app pages (pay/ready/support) into legacy n8n landing..."
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/pay.html     /srv/n8n/landing/pay.html
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/ready.html   /srv/n8n/landing/ready.html
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/support.html /srv/n8n/landing/support.html
+echo "[deploy] Syncing app pages (pay/ready) into legacy n8n landing..."
+cp -a /srv/xcommand-n8n-from-github/infra/app-pages/pay.html   /srv/n8n/landing/pay.html
+cp -a /srv/xcommand-n8n-from-github/infra/app-pages/ready.html /srv/n8n/landing/ready.html
+
+# NOTE:
+# Do NOT overwrite /srv/n8n/landing/support.html here.
+# support.html is owned by /infra/n8n/landing/support.html (single source of truth).
+# Overwriting it from /infra/app-pages/support.html caused the API_BASE to revert to "" and break chat.
 
 echo "[deploy] App pages sync complete."
