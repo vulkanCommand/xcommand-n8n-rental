@@ -6,52 +6,15 @@ cd /srv/xcommand-n8n-from-github
 echo "[xcmd] Using project name: xcommand-n8n-rental"
 export COMPOSE_PROJECT_NAME=xcommand-n8n-rental
 
-SUPPORT_API_BASE="https://api.app.xcommand.cloud"
-
 echo "[xcmd] Pulling latest code from GitHub..."
 git fetch origin main
 git reset --hard origin/main
 
 echo "[xcmd] Syncing git submodules..."
 git submodule sync --recursive
-
-# If submodule has untracked changes (like images/components you edited on server),
-# back them up so deploy won't fail, then clean to allow checkout.
-BACKUP_DIR="/srv/_deploy_backups/frontend-lovable-$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-
-if [ -d "frontend-lovable/.git" ]; then
-  echo "[xcmd] Checking submodule frontend-lovable for local/untracked files..."
-  pushd frontend-lovable >/dev/null
-
-  # backup untracked + modified files (best effort)
-  if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-    echo "[xcmd] Detected local changes in frontend-lovable. Backing up to: $BACKUP_DIR"
-    # tracked modified
-    git diff --name-only | while read -r f; do
-      [ -z "$f" ] && continue
-      mkdir -p "$BACKUP_DIR/$(dirname "$f")"
-      [ -f "$f" ] && cp -a "$f" "$BACKUP_DIR/$f" || true
-    done
-    # untracked
-    git ls-files --others --exclude-standard | while read -r f; do
-      [ -z "$f" ] && continue
-      mkdir -p "$BACKUP_DIR/$(dirname "$f")"
-      [ -f "$f" ] && cp -a "$f" "$BACKUP_DIR/$f" || true
-    done
-  fi
-
-  # force clean so submodule update never conflicts
-  git reset --hard || true
-  git clean -fd || true
-  popd >/dev/null
-fi
-
-# force submodule checkout
-git submodule update --init --recursive --force
+git submodule update --init --recursive
 
 echo "[xcmd] Building Lovable frontend and syncing into web/..."
-# Don’t break deploy if Node/npm isn’t installed.
 if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
   if [ -x "./scripts/lovable.sh" ]; then
     ./scripts/lovable.sh
@@ -69,35 +32,37 @@ docker compose up -d --build
 
 echo "[xcmd] Current containers:"
 docker compose ps
-
 echo "[xcmd] Deploy complete."
 
-echo "[deploy] Syncing landing (Lovable) into legacy n8n paths..."
+echo "[deploy] Syncing landing to /srv/n8n/landing (THIS is what public site serves)..."
 mkdir -p /srv/n8n/landing /srv/n8n/site
 
-# Copy landing bundle
+# If Lovable build produced /web, make infra/n8n/landing reflect it
+# (so we have one canonical copy), then publish to /srv/n8n/landing
+if [ -d "/srv/xcommand-n8n-from-github/web" ] && [ -f "/srv/xcommand-n8n-from-github/web/index.html" ]; then
+  echo "[deploy] Updating infra/n8n/landing from web/ build output..."
+  # Keep infra/n8n/landing extra files, but overwrite the pages/assets from web/
+  cp -a /srv/xcommand-n8n-from-github/web/. /srv/xcommand-n8n-from-github/infra/n8n/landing/
+fi
+
+# Publish the canonical landing bundle
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/. /srv/n8n/landing/
 cp -a /srv/xcommand-n8n-from-github/infra/n8n/landing/index.html /srv/n8n/site/index.html
 
 echo "[deploy] Landing sync complete."
 
-echo "[deploy] Syncing app pages (pay/ready/support) into legacy n8n landing..."
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/pay.html     /srv/n8n/landing/pay.html
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/ready.html   /srv/n8n/landing/ready.html
-cp -a /srv/xcommand-n8n-from-github/infra/app-pages/support.html /srv/n8n/landing/support.html
-echo "[deploy] App pages sync complete."
-
-# HARD-FORCE support API_BASE so it never regresses after deploy
-echo "[deploy] Forcing support API_BASE => ${SUPPORT_API_BASE}"
-if grep -qE 'const API_BASE' /srv/n8n/landing/support.html; then
-  sed -i -E "s|const API_BASE = \".*\";|const API_BASE = \"${SUPPORT_API_BASE}\";|g" /srv/n8n/landing/support.html
+echo "[deploy] Force support API_BASE => https://api.app.xcommand.cloud (prevents CORS issues)"
+if [ -f "/srv/n8n/landing/support.html" ]; then
+  # Replace any existing API_BASE assignment line
+  sed -i -E 's|^const API_BASE = .*;|const API_BASE = "https://api.app.xcommand.cloud";|g' /srv/n8n/landing/support.html || true
 fi
 
-# Restart landing container if it exists (so latest HTML is served)
-if docker ps -a --format '{{.Names}}' | grep -qx 'landing'; then
-  echo "[deploy] Restarting landing container..."
-  docker restart landing >/dev/null
-fi
+echo "[deploy] Restarting landing container to serve latest HTML..."
+docker restart landing >/dev/null 2>&1 || true
 
-echo "[deploy] Final check (served file):"
-grep -n 'const API_BASE' /srv/n8n/landing/support.html | head -n 3 || true
+echo "[deploy] Final check (public pay.html hash should match /srv/n8n/landing/pay.html):"
+sha256sum /srv/n8n/landing/pay.html | awk '{print "[deploy] /srv/n8n/landing/pay.html sha256:", $1}'
+curl -s https://www.xcommand.cloud/pay.html | sha256sum | awk '{print "[deploy] public /pay.html sha256:", $1}'
+
+echo "[deploy] Final check (public support API_BASE line):"
+curl -s https://www.xcommand.cloud/support.html | grep -m1 "const API_BASE" || true
