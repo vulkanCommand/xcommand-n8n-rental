@@ -3,10 +3,9 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Prometheus itself
   - job_name: "prometheus"
     static_configs:
-      - targets: ["prometheus:9090"]
+      - targets: ["xcommand-prometheus:9090"]
 
   - job_name: "node-exporter"
     static_configs:

@@ -16,6 +16,13 @@ services:
     networks:
       - web
       - internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=n8n_web
+      - traefik.http.routers.grafana.rule=Host(`ops.xcommand.cloud`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls.certresolver=le
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
 
   prometheus:
     image: prom/prometheus:v2.55.0
@@ -190,7 +197,6 @@ networks:
   db:
     external: true
     name: xcmd_db_net
-
 
 volumes:
   pg_data:
