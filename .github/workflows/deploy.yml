@@ -2,7 +2,8 @@ name: Deploy to server
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 concurrency:
   group: deploy-main
@@ -11,8 +12,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: SSH and redeploy
+      - name: SSH and run deploy.sh on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -20,4 +22,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            /srv/xcommand-n8n-from-github/redeploy.sh
+            set -e
+            cd /srv/xcommand-n8n-from-github
+            chmod +x ./deploy.sh
+            ./deploy.sh

@@ -11,11 +11,10 @@ cd "$ROOT_DIR"
 git submodule sync --recursive
 git submodule update --init --recursive
 
-# Pull latest from the submodule's default branch (main)
+echo "==> Pulling latest lovable code..."
 cd "$FRONTEND_DIR"
 git fetch origin
 
-# Try main first, fall back to master if needed
 if git show-ref --verify --quiet refs/remotes/origin/main; then
   git checkout main >/dev/null 2>&1 || true
   git pull --ff-only origin main
@@ -24,10 +23,15 @@ else
   git pull --ff-only origin master
 fi
 
+cd "$ROOT_DIR"
+
+echo "==> Updating lovable submodule pointer in parent repo..."
+git add frontend-lovable || true
+
 echo "==> Building lovable frontend..."
+cd "$FRONTEND_DIR"
 
 echo "==> Installing dependencies..."
-# Try npm ci first (fast + reproducible). If lockfile is out of sync, fall back to npm install.
 set +e
 if [ -f package-lock.json ]; then
   npm ci
@@ -52,9 +56,11 @@ fi
 echo "==> Copying build output into web/ (app.xcommand.cloud)..."
 mkdir -p "$WEB_DIR"
 
-# Remove old Vite build artifacts from web/ (but do NOT touch your python backend files)
 rm -rf "$WEB_DIR/assets" 2>/dev/null || true
 rm -f  "$WEB_DIR/index.html" \
+       "$WEB_DIR/pay.html" \
+       "$WEB_DIR/ready.html" \
+       "$WEB_DIR/support.html" \
        "$WEB_DIR/robots.txt" \
        "$WEB_DIR/favicon.ico" \
        "$WEB_DIR/og.png" \
@@ -65,9 +71,11 @@ cp -R "$FRONTEND_DIR/dist/"* "$WEB_DIR/"
 echo "==> Copying build output into infra/n8n/landing (landing site + legacy sync)..."
 mkdir -p "$LANDING_DIR"
 
-# Replace landing bundle with latest build
 rm -rf "$LANDING_DIR/assets" 2>/dev/null || true
 rm -f  "$LANDING_DIR/index.html" \
+       "$LANDING_DIR/pay.html" \
+       "$LANDING_DIR/ready.html" \
+       "$LANDING_DIR/support.html" \
        "$LANDING_DIR/robots.txt" \
        "$LANDING_DIR/favicon.ico" \
        "$LANDING_DIR/og.png" \
@@ -76,6 +84,8 @@ rm -f  "$LANDING_DIR/index.html" \
 cp -R "$FRONTEND_DIR/dist/"* "$LANDING_DIR/"
 
 echo "==> Done."
+echo " - frontend-lovable updated to latest remote commit"
+echo " - submodule pointer staged in parent repo"
 echo " - web/ updated (app.xcommand.cloud)"
 echo " - infra/n8n/landing updated (landing + legacy sync)"
-echo "Next: commit web/ and infra/n8n/landing changes in main repo if you want them versioned."
+echo "Next: commit frontend-lovable, web/, and infra/n8n/landing in main repo."
