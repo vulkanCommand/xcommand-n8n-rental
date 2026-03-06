@@ -333,6 +333,174 @@
     color: var(--muted);
   }
 
+  /* Launch overlay */
+  .launch-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: hsla(220, 20%, 4%, 0.97);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 20px;
+    animation: launchFadeIn 0.4s ease forwards;
+  }
+
+  .launch-overlay.hidden { display: none; }
+
+  @keyframes launchFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .launch-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(hsla(180, 70%, 55%, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsla(180, 70%, 55%, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: launchGridPan 20s linear infinite;
+  }
+
+  @keyframes launchGridPan {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(40px, 40px); }
+  }
+
+  .launch-glow {
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: hsla(180, 70%, 55%, 0.12);
+    filter: blur(80px);
+    animation: launchGlowPulse 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes launchGlowPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  .launch-card {
+    position: relative;
+    z-index: 2;
+    width: min(480px, 90%);
+    border: 1px solid hsla(180, 70%, 55%, 0.15);
+    background: hsla(220, 18%, 6%, 0.85);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 80px -20px hsla(180, 70%, 55%, 0.12);
+    padding: 2rem;
+    text-align: center;
+    animation: launchCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  @keyframes launchCardIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .launch-spinner {
+    width: 56px; height: 56px;
+    margin: 0 auto 1.5rem;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: launchSpin 0.8s linear infinite;
+    box-shadow: 0 0 24px -4px hsla(180, 70%, 55%, 0.4);
+  }
+
+  @keyframes launchSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .launch-title {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--fg);
+    margin-bottom: 0.5rem;
+  }
+
+  .launch-sub {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+  }
+
+  .launch-steps {
+    display: grid;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  .launch-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid transparent;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateX(-8px);
+    animation: launchStepIn 0.4s ease forwards;
+  }
+
+  .launch-step.active {
+    border-color: hsla(180, 70%, 55%, 0.15);
+    background: hsla(180, 70%, 55%, 0.03);
+    color: var(--primary);
+  }
+
+  .launch-step.done { color: var(--success); }
+
+  @keyframes launchStepIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .launch-step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .launch-step.active .launch-step-dot {
+    background: var(--primary);
+    box-shadow: 0 0 12px var(--primary);
+  }
+
+  .launch-step.done .launch-step-dot {
+    background: var(--success);
+    box-shadow: 0 0 12px var(--success);
+  }
+
+  .launch-progress {
+    margin-top: 1rem;
+    height: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .launch-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), hsl(200, 80%, 60%));
+    box-shadow: 0 0 12px hsla(180, 70%, 55%, 0.5);
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
   @media (max-width: 768px) {
     header { padding: 0 1rem; }
     .container { padding: 100px 1rem 60px; }
@@ -407,6 +575,20 @@
   <p>&copy; 2025 xCommand Cloud. All rights reserved.</p>
 </footer>
 
+<!-- Launch Overlay -->
+<div class="launch-overlay hidden" id="launch-overlay">
+  <div class="launch-glow"></div>
+  <div class="launch-card">
+    <div class="launch-spinner"></div>
+    <div class="launch-title">Launching your workspace</div>
+    <div class="launch-sub">Connecting to your isolated n8n instance…</div>
+    <div class="launch-steps" id="launch-steps"></div>
+    <div class="launch-progress">
+      <div class="launch-progress-bar" id="launch-progress-bar"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const API_BASE = "https://api.app.xcommand.cloud";
 
@@ -421,6 +603,58 @@ const workspaceInfo = document.getElementById("workspace-info");
 const workspaceList = document.getElementById("workspace-list");
 
 let pollTimer = null;
+
+// Launch overlay logic
+const LAUNCH_STEPS = [
+  "Verifying workspace status",
+  "Establishing secure connection",
+  "Loading n8n interface",
+  "Preparing your workflows",
+  "Almost there…"
+];
+
+function showLaunchOverlay(targetUrl) {
+  const overlay = document.getElementById("launch-overlay");
+  const stepsEl = document.getElementById("launch-steps");
+  const progressBar = document.getElementById("launch-progress-bar");
+
+  overlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  stepsEl.innerHTML = "";
+  progressBar.style.width = "0%";
+
+  let currentStep = 0;
+
+  function advanceStep() {
+    if (currentStep >= LAUNCH_STEPS.length) {
+      progressBar.style.width = "100%";
+      // Redirect after final step
+      setTimeout(() => { window.open(targetUrl, "_blank"); overlay.classList.add("hidden"); document.body.style.overflow = ""; }, 600);
+      return;
+    }
+
+    // Mark previous as done
+    const prevStep = stepsEl.querySelector(".launch-step.active");
+    if (prevStep) {
+      prevStep.classList.remove("active");
+      prevStep.classList.add("done");
+    }
+
+    // Add new step
+    const step = document.createElement("div");
+    step.className = "launch-step active";
+    step.style.animationDelay = "0s";
+    step.innerHTML = `<span class="launch-step-dot"></span>${LAUNCH_STEPS[currentStep]}`;
+    stepsEl.appendChild(step);
+
+    progressBar.style.width = `${Math.round(((currentStep + 1) / LAUNCH_STEPS.length) * 100)}%`;
+    currentStep++;
+
+    setTimeout(advanceStep, 500 + Math.random() * 400);
+  }
+
+  advanceStep();
+}
 
 function setStatus(state) {
   statusPill.classList.remove("provisioning", "active");
@@ -496,12 +730,18 @@ async function poll(email) {
 
       const link = document.createElement("a");
       link.className = "workspace-item-link";
-      link.href = fqdn.startsWith("http") ? fqdn : `https://${fqdn}`;
+      const targetUrl = fqdn.startsWith("http") ? fqdn : `https://${fqdn}`;
+      link.href = targetUrl;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.textContent = ws.status === "active" ? "Open →" : "Not ready";
 
-      if (ws.status !== "active") {
+      if (ws.status === "active") {
+        link.addEventListener("click", function(e) {
+          e.preventDefault();
+          showLaunchOverlay(targetUrl);
+        });
+      } else {
         link.style.opacity = "0.4";
         link.style.pointerEvents = "none";
       }

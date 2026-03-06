@@ -1292,12 +1292,12 @@ async function runFreeProvision(plan, email) {
     const row = addStep(step, i);
     progressBar.style.width = `${Math.round((i + 0.5) * pctPerStep)}%`;
 
-    await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+    await new Promise(r => setTimeout(r, 300 + Math.random() * 200));
 
     completeStep(row);
     progressBar.style.width = `${Math.round((i + 1) * pctPerStep)}%`;
 
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 80));
   }
 
   // API call
