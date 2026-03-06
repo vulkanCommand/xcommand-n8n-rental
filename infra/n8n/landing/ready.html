@@ -501,6 +501,68 @@
     transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* Launch success */
+  .launch-success {
+    display: none;
+  }
+
+  .launch-success.show {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .launch-success.show ~ .launch-spinner,
+  .launch-success.show ~ .launch-title,
+  .launch-success.show ~ .launch-sub,
+  .launch-success.show ~ .launch-steps,
+  .launch-success.show ~ .launch-progress {
+    display: none;
+  }
+
+  .launch-success-ring {
+    width: 64px; height: 64px;
+    border: 2px solid var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: launchCheckPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: scale(0);
+    box-shadow: 0 0 40px -8px hsla(150, 80%, 55%, 0.4);
+  }
+
+  .launch-success-ring svg {
+    width: 28px; height: 28px;
+    color: var(--success);
+  }
+
+  @keyframes launchCheckPop {
+    to { transform: scale(1); }
+  }
+
+  .launch-success-label {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--fg);
+    opacity: 0;
+    animation: launchFadeUp 0.4s ease 0.3s forwards;
+  }
+
+  .launch-success-hint {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    opacity: 0;
+    animation: launchFadeUp 0.4s ease 0.5s forwards;
+  }
+
+  @keyframes launchFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 768px) {
     header { padding: 0 1rem; }
     .container { padding: 100px 1rem 60px; }
@@ -579,6 +641,13 @@
 <div class="launch-overlay hidden" id="launch-overlay">
   <div class="launch-glow"></div>
   <div class="launch-card">
+    <div class="launch-success" id="launch-success">
+      <div class="launch-success-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="launch-success-label">Connected</div>
+      <div class="launch-success-hint">Opening your workspace…</div>
+    </div>
     <div class="launch-spinner"></div>
     <div class="launch-title">Launching your workspace</div>
     <div class="launch-sub">Connecting to your isolated n8n instance…</div>
@@ -617,19 +686,28 @@ function showLaunchOverlay(targetUrl) {
   const overlay = document.getElementById("launch-overlay");
   const stepsEl = document.getElementById("launch-steps");
   const progressBar = document.getElementById("launch-progress-bar");
+  const launchSuccess = document.getElementById("launch-success");
 
   overlay.classList.remove("hidden");
   document.body.style.overflow = "hidden";
   stepsEl.innerHTML = "";
   progressBar.style.width = "0%";
+  launchSuccess.classList.remove("show");
 
   let currentStep = 0;
 
   function advanceStep() {
     if (currentStep >= LAUNCH_STEPS.length) {
       progressBar.style.width = "100%";
-      // Redirect after final step
-      setTimeout(() => { window.open(targetUrl, "_blank"); overlay.classList.add("hidden"); document.body.style.overflow = ""; }, 600);
+      // Show success state then redirect
+      setTimeout(() => {
+        launchSuccess.classList.add("show");
+        setTimeout(() => {
+          window.open(targetUrl, "_blank");
+          overlay.classList.add("hidden");
+          document.body.style.overflow = "";
+        }, 1200);
+      }, 400);
       return;
     }
 
@@ -643,14 +721,13 @@ function showLaunchOverlay(targetUrl) {
     // Add new step
     const step = document.createElement("div");
     step.className = "launch-step active";
-    step.style.animationDelay = "0s";
     step.innerHTML = `<span class="launch-step-dot"></span>${LAUNCH_STEPS[currentStep]}`;
     stepsEl.appendChild(step);
 
-    progressBar.style.width = `${Math.round(((currentStep + 1) / LAUNCH_STEPS.length) * 100)}%`;
+    progressBar.style.width = `${Math.round(((currentStep + 1) / LAUNCH_STEPS.length) * 90)}%`;
     currentStep++;
 
-    setTimeout(advanceStep, 500 + Math.random() * 400);
+    setTimeout(advanceStep, 600 + Math.random() * 400);
   }
 
   advanceStep();
