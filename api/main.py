@@ -87,6 +87,38 @@ def extract_email_from_messages(messages):
     return None
 
 
+FREE_PLAN_CODE = "free"
+FREE_WORKSPACE_LIMIT = int(os.getenv("FREE_WORKSPACE_LIMIT", "25"))
+
+
+def get_active_free_workspace_count() -> int:
+    rows = fetch_all(
+        """
+        select count(*)::int as count
+        from workspaces
+        where plan = %s
+          and status <> 'deleted'
+          and expires_at > now() at time zone 'utc'
+        """,
+        (FREE_PLAN_CODE,),
+    )
+    return int(rows[0]["count"]) if rows else 0
+
+
+def get_free_workspace_status_payload():
+    active_count = get_active_free_workspace_count()
+    remaining = max(FREE_WORKSPACE_LIMIT - active_count, 0)
+
+    return {
+        "plan": FREE_PLAN_CODE,
+        "limit": FREE_WORKSPACE_LIMIT,
+        "active_count": active_count,
+        "remaining": remaining,
+        "available": active_count < FREE_WORKSPACE_LIMIT,
+        "display": f"{active_count}/{FREE_WORKSPACE_LIMIT} free workspaces",
+    }
+
+
 # --- Workspace provisioning core ---------------------------------------------
 
 
@@ -268,6 +300,15 @@ def get_workspaces_by_email(email: EmailStr):
     return JSONResponse(jsonable_encoder({"ok": True, "workspaces": rows}))
 
 
+@app.get("/plans/free/status")
+def get_free_plan_status():
+    """
+    Public endpoint for landing page / pay page.
+    """
+    payload = get_free_workspace_status_payload()
+    return JSONResponse(jsonable_encoder({"ok": True, **payload}))
+
+
 # --- Workspace lifecycle management ------------------------------------------
 
 
@@ -275,7 +316,11 @@ def get_workspaces_by_email(email: EmailStr):
 def provision_free(req: FreeProvisionRequest):
     """
     Provision a free (24h) workspace without Stripe.
-    Reuse an existing non-expired workspace if one exists.
+
+    Rules:
+    - Reuse an existing non-expired free workspace for the same email if one exists.
+    - If no reusable free workspace exists, allow creation only when the active free workspace
+      count is below FREE_WORKSPACE_LIMIT.
     """
     normalized_email = str(req.email).strip().lower()
 
@@ -294,20 +339,50 @@ def provision_free(req: FreeProvisionRequest):
           created_at
         from workspaces
         where email = %s
+          and plan = %s
           and status <> 'deleted'
           and expires_at > now() at time zone 'utc'
         order by created_at desc
         limit 1
         """,
-        (normalized_email,),
+        (normalized_email, FREE_PLAN_CODE),
     )
 
     if existing:
-        return JSONResponse(jsonable_encoder({"ok": True, "reused": True, "workspace": existing[0]}))
+        return JSONResponse(
+            jsonable_encoder(
+                {
+                    "ok": True,
+                    "reused": True,
+                    "workspace": existing[0],
+                    "capacity": get_free_workspace_status_payload(),
+                }
+            )
+        )
+
+    capacity = get_free_workspace_status_payload()
+    if not capacity["available"]:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "FREE_PLAN_CAPACITY_REACHED",
+                "message": "All free workspaces are currently in use. Please come back later.",
+                "capacity": capacity,
+            },
+        )
 
     try:
-        row = provision_core(normalized_email, "free")
-        return JSONResponse(jsonable_encoder({"ok": True, "reused": False, "workspace": row}))
+        row = provision_core(normalized_email, FREE_PLAN_CODE)
+        return JSONResponse(
+            jsonable_encoder(
+                {
+                    "ok": True,
+                    "reused": False,
+                    "workspace": row,
+                    "capacity": get_free_workspace_status_payload(),
+                }
+            )
+        )
     except Exception as e:
         raise HTTPException(400, str(e))
 
@@ -510,15 +585,16 @@ def metric_active_workspaces():
     Return the number of non-expired, non-deleted workspaces.
     Used by Grafana for accurate active workspace counts.
     """
-    row = fetch_all(
+    rows = fetch_all(
         """
-        SELECT COUNT(*) AS count
+        SELECT COUNT(*)::int AS count
         FROM workspaces
         WHERE status <> 'deleted'
           AND expires_at > NOW() AT TIME ZONE 'utc'
         """
     )
-    return {"active_workspaces": row["count"]}
+    count = int(rows[0]["count"]) if rows else 0
+    return {"active_workspaces": count}
 
 
 # --- AI Support Chat ----------------------------------------------------------
