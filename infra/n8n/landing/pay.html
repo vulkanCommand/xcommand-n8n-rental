@@ -702,6 +702,9 @@
         <span class="price-meta">per workspace</span>
       </div>
       <p class="duration">24 hours access</p>
+      <div id="free-capacity" style="margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        <p style="font-size:0.75rem;color:var(--muted);">Loading capacity...</p>
+      </div>
       <p class="desc">Instant sandbox for trying xCommand. Same workflow UI. Auto-expires after 24 hours.</p>
       <ul class="features">
         <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Dedicated n8n workspace</li>
@@ -807,10 +810,67 @@
   </div>
 </div>
 
+<!-- Capacity Full Modal -->
+<div id="capacity-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:hsla(0,0%,0%,0.8);align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:420px;width:100%;background:var(--bg-card);border:1px solid hsla(180,70%,55%,0.2);padding:2rem;position:relative;box-shadow:0 0 60px -20px hsla(180,70%,55%,0.25);">
+    <button id="modal-close" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.25rem;line-height:1;">&times;</button>
+    <h3 style="font-family:'Space Grotesk',system-ui,sans-serif;font-size:1.25rem;font-weight:700;color:var(--fg);margin-bottom:0.75rem;">Free plan currently full</h3>
+    <p style="font-size:0.9375rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">All free workspaces are currently in use. Please come back later.</p>
+    <p id="modal-capacity-detail" style="font-size:0.8125rem;color:var(--muted);margin-bottom:0.25rem;"></p>
+    <p style="font-size:0.75rem;color:hsla(220,10%,55%,0.6);margin-bottom:1.5rem;">Please check back later when capacity becomes available.</p>
+    <button id="modal-got-it" style="width:100%;padding:0.75rem;border:1px solid var(--primary);background:var(--primary);color:var(--primary-fg);font-family:'Space Grotesk',system-ui,sans-serif;font-size:0.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;">Got it</button>
+  </div>
+</div>
+
 <script>
 const API_BASE = "https://api.app.xcommand.cloud";
 const CHECKOUT_ENDPOINT = "/stripe/create-checkout-session";
 const FREE_PROVISION_ENDPOINT = "/provision/free";
+
+let freeCapacity = null;
+
+// Fetch capacity on load
+(async function() {
+  const el = document.getElementById("free-capacity");
+  try {
+    const res = await fetch(API_BASE + "/plans/free/status");
+    const data = await res.json();
+    if (data.ok) {
+      freeCapacity = data;
+      const dot = document.createElement("span");
+      dot.style.cssText = `width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${data.available ? 'var(--primary)' : 'hsl(0,80%,55%)'}`;
+      const text = document.createElement("p");
+      text.style.cssText = "font-size:0.75rem;color:var(--muted);";
+      text.textContent = data.display + " in use";
+      el.innerHTML = "";
+      el.appendChild(dot);
+      el.appendChild(text);
+      if (!data.available) {
+        const badge = document.createElement("span");
+        badge.style.cssText = "display:inline-flex;align-items:center;background:hsla(0,80%,55%,0.1);border:1px solid hsla(0,80%,55%,0.2);padding:2px 8px;font-family:'Space Grotesk',system-ui,sans-serif;font-size:0.625rem;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:hsl(0,80%,55%);";
+        badge.textContent = "Currently full";
+        el.appendChild(badge);
+      }
+    } else {
+      el.innerHTML = '<p style="font-size:0.75rem;color:hsla(220,10%,55%,0.5);">Capacity unavailable</p>';
+    }
+  } catch(e) {
+    el.innerHTML = '<p style="font-size:0.75rem;color:hsla(220,10%,55%,0.5);">Capacity unavailable</p>';
+  }
+})();
+
+// Modal controls
+const capacityModal = document.getElementById("capacity-modal");
+document.getElementById("modal-close").addEventListener("click", () => { capacityModal.style.display = "none"; });
+document.getElementById("modal-got-it").addEventListener("click", () => { capacityModal.style.display = "none"; });
+
+function showCapacityFullModal() {
+  const detail = document.getElementById("modal-capacity-detail");
+  if (freeCapacity) {
+    detail.textContent = freeCapacity.active_count + "/" + freeCapacity.limit + " free workspaces are currently in use.";
+  }
+  capacityModal.style.display = "flex";
+}
 
 const cards = document.querySelectorAll(".card");
 const emailBox = document.getElementById("email-box");
@@ -962,6 +1022,11 @@ cards.forEach(card => {
   if (disabled) return;
 
   btn.addEventListener("click", () => {
+    // Block free plan if capacity is full
+    if (card.dataset.plan === "free" && freeCapacity && !freeCapacity.available) {
+      showCapacityFullModal();
+      return;
+    }
     document.querySelectorAll(".select-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedPlan = card.dataset.plan;
