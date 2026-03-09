@@ -1,56 +1,54 @@
 # xCommand Cloud
 
-**xCommand Cloud** is a lightweight SaaS platform that lets users instantly launch **isolated n8n automation workspaces** in seconds — without installing anything or managing servers.
+xCommand Cloud is a small platform that lets users launch a temporary **n8n automation workspace** instantly in the browser. Instead of installing n8n locally or configuring infrastructure, users can start a dedicated environment in seconds and begin building workflows right away.
 
-Users can spin up a temporary n8n instance, experiment with automation workflows, and access the full n8n UI through a secure browser workspace.
-
-The platform provisions containerized environments on demand and automatically cleans them up after expiration.
+Each workspace runs inside its own Docker container and is automatically removed after it expires. The goal is to make it easy to test automation ideas without worrying about setup or server management.
 
 ---
 
-# 🚀 What This Project Does
+# What This Project Does
 
-xCommand Cloud provides **ephemeral automation environments** for developers and builders who want to quickly experiment with n8n workflows.
+xCommand Cloud provides temporary environments for experimenting with automation using **n8n**.
 
-Instead of installing n8n locally, users can launch a dedicated environment in seconds.
+Instead of installing n8n locally, users can launch a workspace from the website and immediately access the full n8n UI through their browser.
 
 Each workspace is:
 
-* isolated
-* containerized
-* automatically expired
-* instantly accessible via browser
+* isolated from other users
+* created on demand
+* accessible through a unique subdomain
+* automatically cleaned up after expiration
 
-This makes it perfect for:
+This makes it useful for:
 
 * testing automation ideas
 * learning n8n
-* temporary workflow experiments
+* quick workflow experiments
 * demos or workshops
 
 ---
 
-# ⚡ Core Features
+# Core Features
 
 ### Instant Workspace Launch
 
-Users can spin up a dedicated n8n container with a single click.
+A new n8n workspace can be created in seconds.
 
-### Isolated Environments
+### Container Isolation
 
-Every workspace runs in its own Docker container with a dedicated volume.
+Every workspace runs inside its own Docker container with its own storage volume.
 
-### Temporary Access
+### Temporary Workspaces
 
-Workspaces automatically expire and are cleaned up by the system.
+Workspaces automatically expire and are removed by a background cleanup service.
 
-### Free Sandbox Plan
+### Free Sandbox
 
-Users can try the platform instantly with a **24-hour free workspace**.
+Users can try the platform with a **24-hour free workspace**.
 
 ### Workspace Capacity Control
 
-The platform limits free plan capacity to prevent server overload.
+To keep the server stable, the free plan has a limited number of active workspaces.
 
 Example:
 
@@ -58,23 +56,23 @@ Example:
 24 / 25 free workspaces
 ```
 
-If capacity is reached, users are asked to return later.
+When the limit is reached, new free workspaces are temporarily blocked until one expires.
 
 ### Automatic Cleanup
 
-A background janitor service removes expired containers and volumes.
+A janitor service periodically removes expired containers and volumes.
 
-### Payment Integration
+### Stripe Payments
 
-Paid plans are handled through **Stripe Checkout**.
+Paid plans are handled using Stripe Checkout.
 
-### Built-in Support Assistant
+### AI Support Endpoint
 
-An AI support endpoint helps users with questions related to the platform.
+The API includes a small support assistant that can answer questions about the platform.
 
-### Monitoring & Metrics
+### System Monitoring
 
-System metrics are collected using:
+Infrastructure metrics are collected using:
 
 * Prometheus
 * Grafana
@@ -83,9 +81,9 @@ System metrics are collected using:
 
 ---
 
-# 🏗️ System Architecture
+# System Architecture
 
-The platform is built using a micro-service style architecture.
+The platform uses a small container-based architecture.
 
 ```
 Internet
@@ -95,29 +93,29 @@ Traefik (reverse proxy)
    │
    ├── Landing Page
    ├── API Service
-   └── Dynamic n8n Workspaces
+   └── n8n Workspaces
 ```
 
-### Services
+### Main Services
 
-| Service            | Description                                                    |
-| ------------------ | -------------------------------------------------------------- |
-| **API (FastAPI)**  | Handles provisioning, workspace limits, and Stripe integration |
-| **Web**            | Landing page and UI                                            |
-| **Worker**         | Background job processing                                      |
-| **Janitor**        | Removes expired workspaces                                     |
-| **PostgreSQL**     | Stores workspace metadata                                      |
-| **Traefik**        | Routes subdomains to workspace containers                      |
-| **n8n Containers** | Per-user automation environments                               |
+| Service            | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
+| **API (FastAPI)**  | Handles provisioning, plan limits, and Stripe integration |
+| **Web**            | Landing page and frontend                                 |
+| **Worker**         | Background processing tasks                               |
+| **Janitor**        | Removes expired workspaces                                |
+| **PostgreSQL**     | Stores workspace metadata                                 |
+| **Traefik**        | Routes subdomains to containers                           |
+| **n8n Containers** | Individual automation environments                        |
 
 ---
 
-# 🧠 Workspace Lifecycle
+# Workspace Lifecycle
 
-1️⃣ User selects a plan
-2️⃣ API provisions a new workspace
-3️⃣ Docker container starts an n8n instance
-4️⃣ Workspace URL is generated
+1. A user selects a plan.
+2. The API provisions a new workspace.
+3. Docker starts an n8n container.
+4. A workspace URL is generated.
 
 Example:
 
@@ -125,22 +123,22 @@ Example:
 https://u-3f81a2.xcommand.cloud
 ```
 
-5️⃣ User works inside the environment
-6️⃣ After expiration the janitor service stops and deletes the container
+5. The user works inside the workspace.
+6. After expiration, the janitor service stops and deletes the container.
 
 ---
 
-# 🆓 Free Plan Logic
+# Free Plan Logic
 
-The free plan provides a **24-hour sandbox workspace**.
+The free plan provides a temporary **24-hour workspace**.
 
-To prevent server overload the platform enforces a capacity limit.
+To prevent server overload, the platform limits how many free workspaces can run at the same time.
 
 ```
 FREE_WORKSPACE_LIMIT = 25
 ```
 
-The API tracks active free workspaces using:
+The frontend checks the API to display the current capacity:
 
 ```
 GET /plans/free/status
@@ -160,24 +158,23 @@ Example response:
 }
 ```
 
-If the limit is reached, the API blocks new workspace creation.
+If the limit is reached, the API prevents new free workspaces from being created.
 
 ---
 
-# 💳 Paid Plans
+# Paid Plans
 
 | Plan | Duration |
 | ---- | -------- |
 | $1   | 24 hours |
 | $3   | 5 days   |
 
-Payments are handled via **Stripe Checkout**.
-
-After successful payment the API provisions the workspace automatically.
+Payments are processed through **Stripe Checkout**.
+Once payment is completed, the API automatically provisions the workspace.
 
 ---
 
-# 🧩 Technology Stack
+# Technology Stack
 
 ### Backend
 
@@ -197,29 +194,29 @@ After successful payment the API provisions the workspace automatically.
 * cAdvisor
 * Node Exporter
 
-### Automation Runtime
+### Automation Engine
 
 * n8n
 
 ### Frontend
 
 * Lovable.dev generated UI
-* HTML / CSS / JS
+* HTML / CSS / JavaScript
 
 ---
 
-# 📊 Monitoring
+# Monitoring
 
-The platform exposes internal metrics such as:
+The system exposes internal metrics such as:
 
 * active workspaces
 * container usage
-* CPU utilization
+* CPU usage
 * memory usage
 
 These metrics are visualized through Grafana dashboards.
 
-Example metrics endpoint:
+Example endpoint:
 
 ```
 /metrics/active-workspaces
@@ -227,19 +224,19 @@ Example metrics endpoint:
 
 ---
 
-# 🔐 Security & Isolation
+# Security and Isolation
 
 Each workspace runs:
 
 * inside its own container
-* with its own Docker volume
+* with its own storage volume
 * isolated from other users
 
-Containers are removed after expiration to prevent resource abuse.
+Expired containers and volumes are removed automatically to prevent resource abuse.
 
 ---
 
-# 📁 Project Structure
+# Project Structure
 
 ```
 xcommand-n8n-rental
@@ -248,14 +245,14 @@ xcommand-n8n-rental
 ├── web/                # landing UI
 ├── worker/             # background job worker
 ├── janitor/            # workspace cleanup service
-├── infra/              # docker compose + infra configs
-├── monitoring/         # prometheus / grafana configs
+├── infra/              # Docker compose and infrastructure config
+├── monitoring/         # Prometheus and Grafana configs
 └── scripts/            # deployment scripts
 ```
 
 ---
 
-# 🧪 Local Development
+# Running Locally
 
 Clone the repository:
 
@@ -269,55 +266,52 @@ Start the stack:
 docker compose up -d
 ```
 
-Services will be available locally.
+This starts the API, database, monitoring tools, and supporting services locally.
 
 ---
 
-# 🌐 Production Deployment
+# Deployment
 
-The platform runs on a VPS with:
+The production environment runs on a VPS using Docker Compose and Traefik.
 
-* Docker Compose
-* Traefik for routing
-* automatic container provisioning
-
-Each workspace is assigned a subdomain dynamically.
-
-Example:
+Each workspace is assigned its own subdomain dynamically, for example:
 
 ```
 u-4f91c1.xcommand.cloud
 ```
 
----
-
-# 🎯 Why This Project Is Interesting
-
-This project demonstrates how to build a **real SaaS platform** that:
-
-* provisions infrastructure dynamically
-* isolates user environments
-* manages container lifecycles
-* integrates payments
-* enforces resource limits
-* monitors infrastructure health
-
-It combines **backend engineering, DevOps, and cloud architecture** into one system.
+Traefik automatically routes traffic to the correct container.
 
 ---
 
-# 👨‍💻 Author
+# Why This Project Matters
 
-**Durga Kalyan Gandiboyina**
+This project shows how to build a real SaaS platform that can:
 
-AI Engineer • Full-Stack Developer • Automation Builder
+* create containerized environments on demand
+* isolate users securely
+* manage container lifecycles automatically
+* integrate payments
+* enforce platform capacity limits
+* monitor infrastructure in production
+
+It combines backend development, infrastructure management, and SaaS design into a single system.
 
 ---
 
-# ⭐ Future Improvements
+# Author
 
-* multi-region workspace deployment
-* autoscaling container pools
+Durga Kalyan Gandiboyina
+AI Engineer · Full-Stack Developer · Automation Builder
+
+---
+
+# Future Improvements
+
+Some ideas for the next iteration:
+
+* multi-region deployment
+* container autoscaling
 * user dashboards
-* persistent paid workspaces
+* longer-lived paid workspaces
 * team collaboration support
