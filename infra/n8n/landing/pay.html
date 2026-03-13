@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>xCommand Pricing</title>
-<meta name="description" content="Choose your xCommand workspace plan. No subscriptions, no surprises.">
+<title>Launch Workspace — xCommand</title>
+<meta name="description" content="Get a ready-to-use n8n workspace in seconds. No credit card required.">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -17,8 +17,6 @@
     --primary-fg: hsl(220, 20%, 4%);
     --secondary: hsl(220, 15%, 12%);
     --surface: hsl(220, 16%, 9%);
-    --glow-secondary: hsl(200, 80%, 60%);
-    --warn: hsl(38, 95%, 70%);
     --success: hsl(150, 70%, 55%);
   }
 
@@ -47,9 +45,7 @@
   /* Header */
   header {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     z-index: 50;
     padding: 0 2rem;
     height: 64px;
@@ -89,15 +85,17 @@
   }
 
   .nav-links a:hover { color: var(--fg); }
-  .nav-links a.active { color: var(--primary); }
 
   /* Container */
   .container {
     position: relative;
     z-index: 1;
-    max-width: 1120px;
+    max-width: 580px;
     margin: 0 auto;
-    padding: 120px 2rem 100px;
+    padding: 140px 2rem 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .section-label {
@@ -108,223 +106,128 @@
     letter-spacing: 0.2em;
     color: var(--muted);
     margin-bottom: 1rem;
+    text-align: center;
   }
 
   h1 {
     font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.1;
     margin-bottom: 1rem;
+    text-align: center;
   }
 
   .subtitle {
-    font-size: 1.125rem;
+    font-size: 1rem;
     color: var(--muted);
-    margin-bottom: 3.5rem;
-    max-width: 520px;
+    margin-bottom: 2.5rem;
+    max-width: 480px;
+    text-align: center;
+    line-height: 1.6;
   }
 
-  /* Pricing Grid */
-  .pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
-    max-width: 980px;
-  }
-
-  .card {
+  /* Launch Card */
+  .launch-card {
+    width: 100%;
     background: var(--bg-card);
     border: 1px solid var(--border);
     padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    transition: border-color 0.3s, box-shadow 0.3s, transform 0.18s ease;
     position: relative;
+    transition: border-color 0.3s;
   }
 
-  .card:hover {
-    border-color: hsla(180, 70%, 55%, 0.3);
-    transform: translateY(-1px);
-  }
-
-  .card.popular {
-    border-color: hsla(180, 70%, 55%, 0.4);
-    box-shadow: 0 0 40px -12px hsla(180, 70%, 55%, 0.15);
-  }
-
-  .card.popular::before {
+  .launch-card::before {
     content: '';
     position: absolute;
-    top: -1px;
-    left: 0;
-    right: 0;
+    top: -1px; left: 0; right: 0;
     height: 1px;
     background: linear-gradient(to right, transparent, var(--primary), transparent);
   }
 
-  .card-header {
+  /* Ambient glow behind card */
+  .card-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px; height: 400px;
+    background: hsla(180, 70%, 55%, 0.04);
+    filter: blur(60px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Features list */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.625rem;
+    margin-bottom: 2rem;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: hsl(0, 0%, 88%);
+  }
+
+  .check-icon {
+    width: 14px; height: 14px;
+    flex-shrink: 0;
+    color: var(--primary);
+  }
+
+  /* Capacity indicator */
+  .capacity-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
-    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
-  .card-title {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-size: 1.25rem;
-    font-weight: 700;
+  .capacity-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
-  .badge {
+  .capacity-text {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .badge-full {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    background: hsla(180, 70%, 55%, 0.1);
-    border: 1px solid hsla(180, 70%, 55%, 0.2);
-    padding: 0.125rem 0.625rem;
+    background: hsla(0, 80%, 55%, 0.1);
+    border: 1px solid hsla(0, 80%, 55%, 0.2);
+    padding: 2px 8px;
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-size: 0.625rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    color: var(--primary);
-    white-space: nowrap;
+    color: hsl(0, 80%, 55%);
   }
 
-  .badge.soon {
-    background: hsla(38, 95%, 70%, 0.08);
-    border-color: hsla(38, 95%, 70%, 0.18);
-    color: var(--warn);
-  }
-
-  .badge.free {
-    background: hsla(150, 70%, 55%, 0.08);
-    border-color: hsla(150, 70%, 55%, 0.18);
-    color: var(--success);
-  }
-
-  .price {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-size: 2.5rem;
-    font-weight: 700;
-  }
-
-  .price-meta {
-    font-size: 0.875rem;
-    color: var(--muted);
-    margin-left: 0.5rem;
-  }
-
-  .duration {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 0.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .desc {
-    font-size: 0.875rem;
-    color: var(--muted);
-    margin-bottom: 2rem;
-    line-height: 1.5;
-  }
-
-  .features {
-    list-style: none;
-    display: grid;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-    flex: 1;
-  }
-
-  .features li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.625rem;
-    font-size: 0.875rem;
-    color: hsl(0, 0%, 88%);
-  }
-
-  .check-icon {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    margin-top: 2px;
-    color: var(--primary);
-  }
-
-  .select-btn {
-    width: 100%;
-    padding: 0.75rem;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--fg);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.25s;
-  }
-
-  .select-btn:hover {
-    border-color: hsla(180, 70%, 55%, 0.4);
-    background: var(--secondary);
-  }
-
-  .select-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-fg);
-    box-shadow: 0 0 20px -5px hsla(180, 70%, 55%, 0.4);
-  }
-
-  .select-btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-
-  /* Arrow icon */
-  .arrow-icon {
-    width: 14px;
-    height: 14px;
-    transition: transform 0.2s;
-  }
-
-  .select-btn:hover .arrow-icon {
-    transform: translateX(4px);
-  }
-
-  /* Email Box */
-  .email-box {
-    margin: 2.5rem auto 0;
-    max-width: 520px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    display: none;
-  }
-
-  .email-box.visible { display: grid; gap: 0.75rem; }
-
-  .email-box label {
+  /* Form */
+  .form-label {
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-size: 0.6875rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     color: var(--muted);
+    margin-bottom: 0.5rem;
+    display: block;
   }
 
-  .email-box input {
+  .email-input {
     padding: 0.75rem;
     width: 100%;
     background: var(--surface);
@@ -334,15 +237,16 @@
     font-size: 0.9375rem;
     outline: none;
     transition: border-color 0.2s;
+    margin-bottom: 0.75rem;
   }
 
-  .email-box input:focus {
+  .email-input:focus {
     border-color: var(--primary);
   }
 
-  .continue-btn {
-    margin-top: 0.25rem;
-    padding: 0.75rem;
+  .launch-btn {
+    width: 100%;
+    padding: 0.875rem;
     border: 1px solid var(--primary);
     background: var(--primary);
     color: var(--primary-fg);
@@ -353,24 +257,67 @@
     letter-spacing: 0.12em;
     cursor: pointer;
     transition: box-shadow 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
-  .continue-btn:hover {
-    box-shadow: 0 0 20px -5px hsla(180, 70%, 55%, 0.4);
+  .launch-btn:hover {
+    box-shadow: 0 0 30px -5px hsla(180, 70%, 55%, 0.4);
     transform: translateY(-1px);
   }
 
-  .continue-btn:disabled {
+  .launch-btn:disabled {
     opacity: 0.6;
     cursor: wait;
     transform: none;
     box-shadow: none;
   }
 
+  .arrow-icon {
+    width: 14px; height: 14px;
+    transition: transform 0.2s;
+  }
+
+  .launch-btn:hover .arrow-icon {
+    transform: translateX(4px);
+  }
+
   .hint {
     font-size: 0.75rem;
     color: var(--muted);
     line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+
+  /* Trust badges */
+  .trust-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .trust-item {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.625rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .trust-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.6;
   }
 
   /* Footer */
@@ -390,8 +337,7 @@
     color: var(--muted);
   }
 
-
-  /* --- Clean Provision Overlay --- */
+  /* --- Provision Overlay --- */
   .hidden { display: none !important; }
 
   .overlay {
@@ -571,9 +517,7 @@
   }
 
   /* Success state */
-  .provision-success {
-    display: none;
-  }
+  .provision-success { display: none; }
 
   .provision-success.show {
     display: flex;
@@ -643,19 +587,35 @@
     text-align: left;
   }
 
+  /* Capacity Full Modal */
+  .capacity-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: hsla(0,0%,0%,0.8);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .capacity-modal-card {
+    max-width: 420px;
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid hsla(180,70%,55%,0.2);
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 0 60px -20px hsla(180,70%,55%,0.25);
+  }
+
   @media (max-width: 768px) {
     header { padding: 0 1rem; }
     .container { padding: 100px 1rem 60px; }
     .nav-links { gap: 1rem; }
     .nav-links a { font-size: 0.6rem; letter-spacing: 0.1em; }
-    .pricing-grid { grid-template-columns: 1fr; }
-    .subtitle { margin-bottom: 2rem; }
-    .logo-strip { gap: 16px; flex-wrap: wrap; }
-    .tech-logo .logo-icon { width: 34px; height: 34px; }
-    .tech-logo .logo-icon svg { width: 18px; height: 18px; }
-    .cinema-steps { min-height: 200px; }
-    .step-row { padding: 8px 10px; gap: 10px; }
-    .step-icon { width: 28px; height: 28px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .trust-row { gap: 1rem; }
   }
 
   @media (max-width: 400px) {
@@ -664,9 +624,7 @@
     .nav-links { gap: 0.5rem; }
     .nav-links a { font-size: 0.5rem; letter-spacing: 0.06em; }
     .container { padding: 80px 0.75rem 40px; }
-    .card { padding: 1.25rem; }
-    .price { font-size: 2rem; }
-    .email-box { padding: 1rem; }
+    .launch-card { padding: 1.25rem; }
     h1 { font-size: 1.5rem; }
   }
 </style>
@@ -679,104 +637,73 @@
   <a href="https://xcommand.cloud" class="logo" style="text-decoration:none;">xCommand<span>.</span></a>
   <nav class="nav-links">
     <a href="https://xcommand.cloud/">Home</a>
-    <a href="https://xcommand.cloud/pay.html" class="active">Plans</a>
     <a href="https://xcommand.cloud/ready.html">Workspace</a>
     <a href="https://xcommand.cloud/support.html">Support</a>
   </nav>
 </header>
 
 <div class="container">
-  <p class="section-label">Pricing</p>
-  <h1>Choose Your Workspace Plan</h1>
-  <p class="subtitle">No setup. No maintenance. Your isolated n8n workspace launches instantly.</p>
+  <p class="section-label">Instant Workspace Access</p>
+  <h1>Launch Your n8n Workspace</h1>
+  <p class="subtitle">Get a ready-to-use isolated n8n workspace in seconds. Skip installs, server setup, and maintenance. Just enter your email and start building.</p>
 
-  <div class="pricing-grid">
-    <!-- Free -->
-    <div class="card popular" data-plan="free">
-      <div class="card-header">
-        <span class="card-title">Free</span>
-        <span class="badge free">Try it</span>
+  <div style="position:relative;width:100%;">
+    <div class="card-glow"></div>
+    <div class="launch-card">
+
+      <!-- Features grid -->
+      <div class="features-grid">
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Dedicated n8n workspace
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Full n8n UI
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Zero setup required
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Ready in seconds
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Isolated environment
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Auto-expires after 24h
+        </div>
+        <div class="feature-item">
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          No credit card required
+        </div>
       </div>
-      <div style="margin-bottom: 0.25rem;">
-        <span class="price">$0</span>
-        <span class="price-meta">per workspace</span>
+
+      <!-- Capacity indicator -->
+      <div class="capacity-row" id="free-capacity">
+        <p class="capacity-text">Loading capacity...</p>
       </div>
-      <p class="duration">24 hours access</p>
-      <div id="free-capacity" style="margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-        <p style="font-size:0.75rem;color:var(--muted);">Loading capacity...</p>
-      </div>
-      <p class="desc">Instant sandbox for trying xCommand. Same workflow UI. Auto-expires after 24 hours.</p>
-      <ul class="features">
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Dedicated n8n workspace</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Full n8n UI</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Zero setup required</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Auto-expiry after 24 hours</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>One click to start</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>No credit card required</li>
-      </ul>
-      <button class="select-btn">
-        Select plan
+
+      <!-- Email form -->
+      <label class="form-label" for="email-input">Your email for this workspace</label>
+      <input class="email-input" id="email-input" type="email" placeholder="you@example.com" required>
+      <button class="launch-btn" id="launch-btn">
+        Start Free Workspace
         <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
-    </div>
+      <p class="hint">We'll create your workspace and redirect you when it's ready.</p>
 
-    <!-- Explorer -->
-    <div class="card" data-plan="1d" data-disabled="true">
-      <div class="card-header">
-        <span class="card-title">Explorer</span>
-        <span class="badge soon">Coming soon</span>
+      <!-- Trust badges -->
+      <div class="trust-row">
+        <span class="trust-item"><span class="trust-dot"></span>No credit card required</span>
+        <span class="trust-item"><span class="trust-dot"></span>Free workspace access</span>
+        <span class="trust-item"><span class="trust-dot"></span>Temporary sandbox</span>
       </div>
-      <div style="margin-bottom: 0.25rem;">
-        <span class="price">$1</span>
-        <span class="price-meta">per workspace</span>
-      </div>
-      <p class="duration">24 hours access</p>
-      <p class="desc">Perfect for quick experiments, testing a single integration, or evaluating n8n.</p>
-      <ul class="features">
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Dedicated n8n workspace</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Full n8n UI</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Zero setup required</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Auto-expiry after 24 hours</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Secure isolated container</li>
-      </ul>
-      <button class="select-btn" disabled>
-        Select plan
-        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
     </div>
-
-    <!-- Builder -->
-    <div class="card" data-plan="5d" data-disabled="true">
-      <div class="card-header">
-        <span class="card-title">Builder</span>
-        <span class="badge soon">Coming soon</span>
-      </div>
-      <div style="margin-bottom: 0.25rem;">
-        <span class="price">$3</span>
-        <span class="price-meta">per workspace</span>
-      </div>
-      <p class="duration">5 days access</p>
-      <p class="desc">For serious prototyping, multi-step workflows, and team evaluation sprints.</p>
-      <ul class="features">
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Dedicated n8n workspace</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Full n8n UI</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Zero setup required</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Auto-expiry after 5 days</li>
-        <li><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Perfect for multi-day builds</li>
-      </ul>
-      <button class="select-btn" disabled>
-        Select plan
-        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- Email box -->
-  <div class="email-box" id="email-box">
-    <label for="email-input">Your email for this workspace</label>
-    <input id="email-input" type="email" placeholder="you@example.com" required>
-    <button class="continue-btn" id="continue-btn">Continue</button>
-    <p class="hint" id="hint-text">We'll use this email to provision and look up your workspace.</p>
   </div>
 </div>
 
@@ -804,15 +731,15 @@
     </div>
     <div class="overlay-error" id="overlay-error">⚠ Provisioning failed. Please refresh and try again.</div>
     <div class="provision-footer">
-      <span>Plan: <strong id="overlay-plan">Free</strong></span>
+      <span>Plan: <strong>Free</strong></span>
       <span id="overlay-email"></span>
     </div>
   </div>
 </div>
 
 <!-- Capacity Full Modal -->
-<div id="capacity-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:hsla(0,0%,0%,0.8);align-items:center;justify-content:center;padding:20px;">
-  <div style="max-width:420px;width:100%;background:var(--bg-card);border:1px solid hsla(180,70%,55%,0.2);padding:2rem;position:relative;box-shadow:0 0 60px -20px hsla(180,70%,55%,0.25);">
+<div class="capacity-modal-overlay" id="capacity-modal">
+  <div class="capacity-modal-card">
     <button id="modal-close" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.25rem;line-height:1;">&times;</button>
     <h3 style="font-family:'Space Grotesk',system-ui,sans-serif;font-size:1.25rem;font-weight:700;color:var(--fg);margin-bottom:0.75rem;">Free plan currently full</h3>
     <p style="font-size:0.9375rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">All free workspaces are currently in use. Please come back later.</p>
@@ -824,7 +751,6 @@
 
 <script>
 const API_BASE = "https://api.app.xcommand.cloud";
-const CHECKOUT_ENDPOINT = "/stripe/create-checkout-session";
 const FREE_PROVISION_ENDPOINT = "/provision/free";
 
 let freeCapacity = null;
@@ -837,25 +763,26 @@ let freeCapacity = null;
     const data = await res.json();
     if (data.ok) {
       freeCapacity = data;
-      const dot = document.createElement("span");
-      dot.style.cssText = `width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${data.available ? 'var(--primary)' : 'hsl(0,80%,55%)'}`;
-      const text = document.createElement("p");
-      text.style.cssText = "font-size:0.75rem;color:var(--muted);";
-      text.textContent = data.display + " in use";
       el.innerHTML = "";
+      const dot = document.createElement("span");
+      dot.className = "capacity-dot";
+      dot.style.background = data.available ? 'var(--primary)' : 'hsl(0,80%,55%)';
+      const text = document.createElement("p");
+      text.className = "capacity-text";
+      text.textContent = data.display + " in use";
       el.appendChild(dot);
       el.appendChild(text);
       if (!data.available) {
         const badge = document.createElement("span");
-        badge.style.cssText = "display:inline-flex;align-items:center;background:hsla(0,80%,55%,0.1);border:1px solid hsla(0,80%,55%,0.2);padding:2px 8px;font-family:'Space Grotesk',system-ui,sans-serif;font-size:0.625rem;font-weight:600;text-transform:uppercase;letter-spacing:0.15em;color:hsl(0,80%,55%);";
+        badge.className = "badge-full";
         badge.textContent = "Currently full";
         el.appendChild(badge);
       }
     } else {
-      el.innerHTML = '<p style="font-size:0.75rem;color:hsla(220,10%,55%,0.5);">Capacity unavailable</p>';
+      el.innerHTML = '<p class="capacity-text" style="opacity:0.5;">Capacity unavailable</p>';
     }
   } catch(e) {
-    el.innerHTML = '<p style="font-size:0.75rem;color:hsla(220,10%,55%,0.5);">Capacity unavailable</p>';
+    el.innerHTML = '<p class="capacity-text" style="opacity:0.5;">Capacity unavailable</p>';
   }
 })();
 
@@ -872,43 +799,14 @@ function showCapacityFullModal() {
   capacityModal.style.display = "flex";
 }
 
-const cards = document.querySelectorAll(".card");
-const emailBox = document.getElementById("email-box");
 const emailInput = document.getElementById("email-input");
-const continueBtn = document.getElementById("continue-btn");
-const hintText = document.getElementById("hint-text");
-
+const launchBtn = document.getElementById("launch-btn");
 const overlay = document.getElementById("provision-overlay");
 const stepsContainer = document.getElementById("provision-steps");
 const progressBar = document.getElementById("progress-bar");
-const overlayPlan = document.getElementById("overlay-plan");
 const overlayEmail = document.getElementById("overlay-email");
 const overlayError = document.getElementById("overlay-error");
 const provisionSuccess = document.getElementById("provision-success");
-
-let selectedPlan = null;
-
-function isFree(plan) { return plan === "free"; }
-
-function setContinueText() {
-  if (isFree(selectedPlan)) {
-    continueBtn.textContent = "Start Free Workspace";
-    hintText.textContent = "We'll create your workspace now and redirect you to the ready page.";
-  } else {
-    continueBtn.textContent = "Continue to checkout";
-    hintText.textContent = "We'll use this email to provision and look up your workspace. Stripe will also ask for an email for the receipt.";
-  }
-}
-
-function setContinueLoading(isLoading) {
-  continueBtn.disabled = isLoading;
-  if (!selectedPlan) { continueBtn.textContent = "Continue"; return; }
-  if (isLoading) {
-    continueBtn.textContent = isFree(selectedPlan) ? "Provisioning…" : "Creating secure checkout…";
-  } else {
-    setContinueText();
-  }
-}
 
 const PROVISION_STEPS = [
   "Allocating container slot",
@@ -919,8 +817,7 @@ const PROVISION_STEPS = [
   "Generating workspace URL"
 ];
 
-function showOverlay(plan, email) {
-  overlayPlan.textContent = isFree(plan) ? "Free" : plan;
+function showOverlay(email) {
   overlayEmail.textContent = email;
   overlayError.style.display = "none";
   stepsContainer.innerHTML = "";
@@ -941,20 +838,18 @@ async function runStepAnimation() {
         return;
       }
 
-      // Mark previous as done
       const prevStep = stepsContainer.querySelector(".provision-step.active");
       if (prevStep) {
         prevStep.classList.remove("active");
         prevStep.classList.add("done");
       }
 
-      // Add new step
       const step = document.createElement("div");
       step.className = "provision-step active";
-      step.innerHTML = `<span class="provision-step-dot"></span>${PROVISION_STEPS[currentStep]}`;
+      step.innerHTML = '<span class="provision-step-dot"></span>' + PROVISION_STEPS[currentStep];
       stepsContainer.appendChild(step);
 
-      progressBar.style.width = `${Math.round(((currentStep + 1) / PROVISION_STEPS.length) * 90)}%`;
+      progressBar.style.width = Math.round(((currentStep + 1) / PROVISION_STEPS.length) * 90) + "%";
       currentStep++;
 
       setTimeout(() => resolve(advanceStep()), 600 + Math.random() * 400);
@@ -963,7 +858,6 @@ async function runStepAnimation() {
 
   await advanceStep();
 
-  // Mark last step done
   const lastStep = stepsContainer.querySelector(".provision-step.active");
   if (lastStep) {
     lastStep.classList.remove("active");
@@ -971,10 +865,9 @@ async function runStepAnimation() {
   }
 }
 
-async function runFreeProvision(plan, email) {
-  showOverlay(plan, email);
+async function runFreeProvision(email) {
+  showOverlay(email);
 
-  // Start animation and API call in parallel
   const animationPromise = runStepAnimation();
 
   let apiResult = null;
@@ -995,91 +888,45 @@ async function runFreeProvision(plan, email) {
     apiError = err;
   }
 
-  // Wait for animation to finish
   await animationPromise;
 
   if (apiError) {
     console.error(apiError);
     overlayError.style.display = "block";
     progressBar.style.width = "100%";
-    setContinueLoading(false);
+    launchBtn.disabled = false;
+    launchBtn.innerHTML = 'Start Free Workspace <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
     document.body.style.overflow = "";
     return;
   }
 
-  // Success
   progressBar.style.width = "100%";
   await new Promise(r => setTimeout(r, 400));
   provisionSuccess.classList.add("show");
   await new Promise(r => setTimeout(r, 1500));
-  window.location.href = `${window.location.origin}/ready.html`;
+  window.location.href = window.location.origin + "/ready.html";
 }
 
-// Card selection
-cards.forEach(card => {
-  const btn = card.querySelector(".select-btn");
-  const disabled = card.getAttribute("data-disabled") === "true";
-  if (disabled) return;
+// Launch button
+launchBtn.addEventListener("click", async () => {
+  // Block if capacity full
+  if (freeCapacity && !freeCapacity.available) {
+    showCapacityFullModal();
+    return;
+  }
 
-  btn.addEventListener("click", () => {
-    // Block free plan if capacity is full
-    if (card.dataset.plan === "free" && freeCapacity && !freeCapacity.available) {
-      showCapacityFullModal();
-      return;
-    }
-    document.querySelectorAll(".select-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    selectedPlan = card.dataset.plan;
-    emailBox.classList.add("visible");
-    setContinueText();
-    emailBox.scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(() => emailInput.focus(), 400);
-  });
-});
-
-// Continue button
-continueBtn.addEventListener("click", async () => {
-  if (!selectedPlan) { alert("Please select a plan first."); return; }
   const email = emailInput.value.trim();
   if (!email) { alert("Please enter your email."); emailInput.focus(); return; }
 
   try {
     localStorage.setItem("x_email", email);
-    localStorage.setItem("x_plan", selectedPlan);
+    localStorage.setItem("x_plan", "free");
   } catch (e) { console.warn("localStorage not available", e); }
 
-  if (isFree(selectedPlan)) {
-    setContinueLoading(true);
-    await runFreeProvision(selectedPlan, email);
-    return;
-  }
-
-  // Paid: Stripe flow
-  const successUrl = window.location.origin + "/ready.html";
-  const cancelUrl = window.location.href;
-  setContinueLoading(true);
-
-  try {
-    const res = await fetch(API_BASE + CHECKOUT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, plan: selectedPlan, success_url: successUrl, cancel_url: cancelUrl })
-    });
-    if (!res.ok) { const txt = await res.text(); throw new Error(txt || "Checkout API error"); }
-    const data = await res.json();
-    if (data.checkout_url) { window.location.href = data.checkout_url; }
-    else if (data.id) { alert("Backend returned a session id but checkout_url is missing."); setContinueLoading(false); }
-    else { throw new Error("Unexpected response from checkout endpoint."); }
-  } catch (err) {
-    console.error(err);
-    alert("Could not start checkout. Please try again.");
-    setContinueLoading(false);
-  }
+  launchBtn.disabled = true;
+  launchBtn.textContent = "Provisioning…";
+  await runFreeProvision(email);
 });
 </script>
 </body>
 </html>
-
-
-
-
