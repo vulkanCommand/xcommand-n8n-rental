@@ -735,4 +735,13 @@ async def support_chat(payload: ChatRequest):
         return {"reply": reply}
     except Exception as e:
         print("OpenAI error:", str(e))
-        return {"error": "openai_failure"}
+        fallback_reply = (
+            "Our AI support assistant is temporarily unavailable right now. "
+            "Please share your payment email, plan type, and approximate purchase time, "
+            "and a human can review it for you."
+        )
+        return {
+            "reply": fallback_reply,
+            "degraded": True,
+            "error": "openai_failure",
+        }
